@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// All writes to cows, readings, alerts, and app_tokens are denied to clients.
+// Cloud Functions and the simulator use the Admin SDK, which bypasses rules.
+// When ESP32 firmware is added, it must authenticate (e.g. anonymous auth with a
+// per-device account) and only then gets create access on readings — see README.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /cows/{cowId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /readings/{readingId} {
+        allow read: if true;
+        allow create: if false;
+        allow update, delete: if false;
+      }
+
+      match /alerts/{alertId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    match /app_tokens/{tokenId} {
+      allow read, write: if false;
+    }
+  }
+}

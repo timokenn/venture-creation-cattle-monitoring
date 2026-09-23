@@ -1,0 +1,10 @@
+{
+  "name": "cattle-monitor-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Writes synthetic ESP32 readings to Supabase (PostgREST) for testing without hardware",
+  "scripts": {
+    "start": "node main.js"
+  }
+}

@@ -1,0 +1,43 @@
+# Node / functions / simulator
+node_modules/
+functions/lib/
+*.tsbuildinfo
+.env
+.env.*
+*.local
+
+# Secrets — service-account keys must NEVER be committed
+*-firebase-adminsdk-*.json
+serviceAccount*.json
+sa.json
+supabase-secrets.env
+*-secrets.env
+
+# Supabase CLI state (contains access tokens / project refs)
+supabase/.temp/
+supabase/.branches/
+supabase/.env*
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*-debug.log
+
+# Android
+android/.gradle/
+android/local.properties
+android/app/build/
+android/build/
+android/app/google-services.json
+android/app/release/
+*.jks
+*.keystore
+
+# Editors / OS / local tooling
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+.freebuff/

@@ -1,0 +1,5 @@
+# Template — copy this file to local.properties (which is gitignored) and fill
+# in your real values. Both come from the Supabase dashboard → Connect panel.
+# Android Studio adds the sdk.dir line automatically on first sync.
+supabase.url=https://YOUR-PROJECT-REF.supabase.co
+supabase.key=YOUR_PUBLISHABLE_KEY
