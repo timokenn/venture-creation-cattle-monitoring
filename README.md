@@ -89,8 +89,9 @@ Dashboard → Database → Webhooks → **Create a new hook**:
 
 1. Create/use a Firebase project, add an **Android app** with package
    `com.example.cattlemonitor` (must match the app's `applicationId`).
-2. Download `google-services.json` into `android/app/` (already present for
-   `tugas-venture`).
+2. Download `google-services.json` from the Firebase console into
+   `android/app/` — it is gitignored, so it must be provided per machine
+   (`google-services.json.example` shows the expected shape).
 3. **Project settings → Service accounts → Generate new private key** — that
    JSON is the `SERVICE_ACCOUNT_JSON` secret above; the Firebase **project id**
    is `FCM_PROJECT_ID`.
