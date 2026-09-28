@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.example.cattlemonitor.R
 import com.example.cattlemonitor.data.AlertType
 import com.example.cattlemonitor.settings.NotificationPrefs
+import com.example.cattlemonitor.ui.common.alertTypeLabel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -40,8 +41,12 @@ fun SettingsScreen() {
                 modifier = Modifier.padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Title Case per design: "Fever", "Low Activity",
+                // "Possible Estrus"… (localized names from alertTypeLabel).
                 Text(
-                    type.name.lowercase().replace('_', ' '),
+                    alertTypeLabel(type).split(' ').joinToString(" ") { w ->
+                        w.replaceFirstChar { it.uppercase() }
+                    },
                     modifier = Modifier.weight(1f),
                 )
                 Switch(
