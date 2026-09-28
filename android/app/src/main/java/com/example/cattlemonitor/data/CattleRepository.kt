@@ -32,6 +32,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.Date
@@ -184,14 +186,18 @@ class CattleRepository(
         removePhoto: Boolean = false,
     ): Result<Unit> =
         runCatching {
-            val payload = buildMap<String, Any> {
-                put("id", id)
-                if (!name.isNullOrBlank()) put("name", name)
-                if (!deviceId.isNullOrBlank()) put("device_id", deviceId)
-                if (!imageUrl.isNullOrBlank()) put("image_url", imageUrl)
-                if (removePhoto) put("remove_photo", true)
+            // Explicit JsonObject: a Map<String, Any> would compile but THROW at
+            // runtime ("Serializer for class 'Any' is not found") — rename and
+            // photo updates silently failed that way once a boolean joined the
+            // string-only payload.
+            val payload = buildJsonObject {
+                put("id", JsonPrimitive(id))
+                if (!name.isNullOrBlank()) put("name", JsonPrimitive(name))
+                if (!deviceId.isNullOrBlank()) put("device_id", JsonPrimitive(deviceId))
+                if (!imageUrl.isNullOrBlank()) put("image_url", JsonPrimitive(imageUrl))
+                if (removePhoto) put("remove_photo", JsonPrimitive(true))
             }
-            val (code, body) = invokeFunction("update-cow", json.encodeToString(payload))
+            val (code, body) = invokeFunction("update-cow", payload.toString())
             when {
                 code == 409 -> throw DeviceInUseException()
                 code == 404 -> throw CowNotFoundException()
@@ -251,10 +257,10 @@ class CattleRepository(
      * the 5,000-row raw cap.
      */
     suspend fun fetchDownsampled(cowId: String, since: Date, bucketSeconds: Int = 600): List<Bucket> = runCatching {
-        val params = kotlinx.serialization.json.buildJsonObject {
-            put("p_cow_id", kotlinx.serialization.json.JsonPrimitive(cowId))
-            put("p_since", kotlinx.serialization.json.JsonPrimitive(since.toInstant().toString()))
-            put("p_bucket_seconds", kotlinx.serialization.json.JsonPrimitive(bucketSeconds))
+        val params = buildJsonObject {
+            put("p_cow_id", JsonPrimitive(cowId))
+            put("p_since", JsonPrimitive(since.toInstant().toString()))
+            put("p_bucket_seconds", JsonPrimitive(bucketSeconds))
         }
         val buckets: List<Bucket> = client.postgrest.rpc("readings_downsample", params)
             .decodeList<BucketDto>()
