@@ -167,6 +167,11 @@
     <string name="profile_signed_in">Masuk sebagai</string>
     <string name="profile_logout">Keluar</string>
     <string name="language_title">Bahasa</string>
+    <string name="settings_theme_title">Tampilan</string>
+    <string name="settings_theme_subtitle">Terang adalah tampilan khas DeCow; Gelap lebih nyaman di malam hari.</string>
+    <string name="theme_light">Terang</string>
+    <string name="theme_dark">Gelap</string>
+    <string name="theme_system">Ikuti sistem</string>
     <string name="language_saved_pre13">Tersimpan. Di versi Android ini, buka ulang aplikasi agar sepenuhnya diterapkan.</string>
     <string name="language_system">Bawaan sistem</string>
     <string name="language_english">English</string>

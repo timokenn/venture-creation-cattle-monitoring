@@ -169,6 +169,11 @@
     <string name="profile_signed_in">Signed in</string>
     <string name="profile_logout">Log out</string>
     <string name="language_title">Language</string>
+    <string name="settings_theme_title">Appearance</string>
+    <string name="settings_theme_subtitle">Light is the DeCow look; Dark is easier at night.</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">Match system</string>
     <string name="language_saved_pre13">Saved. On this Android version, reopen the app for it to fully apply.</string>
     <string name="language_system">System default</string>
     <string name="language_english">English</string>

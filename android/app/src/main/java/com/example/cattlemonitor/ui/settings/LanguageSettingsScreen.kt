@@ -56,6 +56,8 @@ fun SettingsScreenWithLanguage(onLoggedOut: () -> Unit = {}) {
         HorizontalDivider()
         LanguageSection()
         HorizontalDivider()
+        ThemeSection()
+        HorizontalDivider()
         SettingsScreen()
         BrandFooter()
     }

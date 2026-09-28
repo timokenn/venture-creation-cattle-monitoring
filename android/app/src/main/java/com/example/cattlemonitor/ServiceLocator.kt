@@ -5,6 +5,7 @@ import com.example.cattlemonitor.data.AuthRepository
 import com.example.cattlemonitor.data.CattleRepository
 import com.example.cattlemonitor.data.ConnectivityObserver
 import com.example.cattlemonitor.data.CowPhotoUploader
+import com.example.cattlemonitor.settings.ThemePrefs
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
@@ -57,4 +58,7 @@ object ServiceLocator {
     val photoUploader: CowPhotoUploader by lazy {
         CowPhotoUploader(tokenProvider = { auth.currentAccessToken() })
     }
+
+    /** Appearance choice (light / dark / system) — surfaced in Settings. */
+    val themePrefs: ThemePrefs by lazy { ThemePrefs(context) }
 }

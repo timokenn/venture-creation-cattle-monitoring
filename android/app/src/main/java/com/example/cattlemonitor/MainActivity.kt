@@ -8,6 +8,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.collectAsState
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -65,7 +67,16 @@ class MainActivity : ComponentActivity() {
         pendingIntent = intent
         maybeRequestNotificationPermission()
         setContent {
-            CattleMonitorTheme {
+            // Theme choice (Settings → Appearance) re-composes the whole tree
+            // when changed; LIGHT is the brand default, SYSTEM follows the OS.
+            val themeMode by ServiceLocator.themePrefs.selected
+                .collectAsState(initial = com.example.cattlemonitor.settings.ThemeMode.LIGHT)
+            val darkTheme = when (themeMode) {
+                com.example.cattlemonitor.settings.ThemeMode.DARK -> true
+                com.example.cattlemonitor.settings.ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                com.example.cattlemonitor.settings.ThemeMode.LIGHT -> false
+            }
+            CattleMonitorTheme(darkTheme = darkTheme) {
                 Surface {
                     AppNavHost(startIntent = pendingIntent)
                 }
