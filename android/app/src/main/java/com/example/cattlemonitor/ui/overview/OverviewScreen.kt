@@ -146,14 +146,14 @@ private fun LayoutChip(label: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
             .background(if (selected) Brand else Color.Transparent)
-            .border(1.dp, if (selected) Brand else Line, RoundedCornerShape(16.dp))
+            .border(1.dp, if (selected) Brand else MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 11.dp, vertical = 4.dp),
     ) {
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
-            color = if (selected) Color.White else InkSoft,
+            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -172,8 +172,8 @@ private fun StatStrip(cows: List<Cow>) {
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .background(Surface, RoundedCornerShape(10.dp))
-                    .border(1.dp, Line, RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(10.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
                     .padding(horizontal = 8.dp, vertical = 8.dp),
             ) {
                 Text(
@@ -217,8 +217,8 @@ private fun CowCard(cow: Cow, stack: Boolean, onClick: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Surface, RoundedCornerShape(20.dp))
-                .border(1.dp, Line, RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
                 .clickable(onClick = onClick)
                 .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 14.dp),
         ) {
@@ -284,7 +284,7 @@ private fun BatteryIndicator(level: Double) {
             modifier = Modifier
                 .width(18.dp)
                 .height(10.dp)
-                .border(1.dp, InkSoft, RoundedCornerShape(2.dp))
+                .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, RoundedCornerShape(2.dp))
                 .padding(1.5.dp),
         ) {
             Box(

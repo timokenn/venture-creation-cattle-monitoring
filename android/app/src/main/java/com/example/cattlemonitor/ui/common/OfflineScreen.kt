@@ -80,7 +80,7 @@ fun OfflineScreen(onBackOnline: () -> Unit = {}) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Bg)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
@@ -94,7 +94,7 @@ fun OfflineScreen(onBackOnline: () -> Unit = {}) {
                 Icon(
                     painter = painterResource(R.drawable.ic_offline),
                     contentDescription = null,
-                    tint = InkSoft,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(40.dp),
                 )
             }
@@ -102,20 +102,20 @@ fun OfflineScreen(onBackOnline: () -> Unit = {}) {
             Text(
                 stringResource(R.string.offline_title),
                 style = MaterialTheme.typography.titleLarge,
-                color = Ink,
+                color = MaterialTheme.colorScheme.onBackground,
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 stringResource(R.string.offline_body),
                 style = MaterialTheme.typography.bodyMedium,
-                color = InkSoft,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(6.dp))
             Text(
                 stringResource(R.string.offline_reconnect_hint),
                 style = MaterialTheme.typography.bodySmall,
-                color = InkSoft.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             )
         }
     }

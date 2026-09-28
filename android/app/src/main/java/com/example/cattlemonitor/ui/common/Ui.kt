@@ -63,7 +63,7 @@ fun StatusBadge(status: CowStatus, modifier: Modifier = Modifier) {
 @Composable
 fun EmptyState(text: String) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = Ink.copy(alpha = 0.5f))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
     }
 }
 
@@ -90,8 +90,8 @@ fun LineChart(
     suspicious: Set<Int> = emptySet(),
     alertMarkers: Set<Int> = emptySet(),
 ) {
-    val axisColorArgb = InkSoft.toArgb()
-    val gridColor = Line
+    val axisColorArgb = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    val gridColor = MaterialTheme.colorScheme.outline
     Canvas(modifier = modifier.fillMaxWidth().height(if (showAxis) 168.dp else 150.dp)) {
         if (values.size < 2) return@Canvas
 

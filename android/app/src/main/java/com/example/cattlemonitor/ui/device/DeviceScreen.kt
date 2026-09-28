@@ -254,7 +254,7 @@ fun DeviceScreen(vm: DeviceViewModel = viewModel()) {
                             Text(
                                 cow.deviceId,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = BrandSoft,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                             )
                         }
                         Text(

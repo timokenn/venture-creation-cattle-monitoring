@@ -120,7 +120,7 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .background(if (selected) Brand else Color.Transparent)
-            .border(1.dp, if (selected) Brand else Line, RoundedCornerShape(20.dp))
+            .border(1.dp, if (selected) Brand else MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp),
     ) {

@@ -14,10 +14,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.cattlemonitor.R
-import com.example.cattlemonitor.ui.theme.Bg
 import kotlinx.coroutines.delay
 
 /** Fades the DeCow logo in, holds briefly, fades it out, then calls onFinished. */
@@ -33,7 +33,7 @@ fun SplashScreen(onFinished: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Bg)
+            .background(MaterialTheme.colorScheme.background)
             .padding(48.dp),
         contentAlignment = Alignment.Center,
     ) {

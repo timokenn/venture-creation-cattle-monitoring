@@ -368,8 +368,8 @@ private fun ChartCard(content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Surface, RoundedCornerShape(10.dp))
-            .border(1.dp, Line, RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(10.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
             .padding(12.dp),
     ) { content() }
 }
@@ -380,7 +380,7 @@ private fun RangeChip(label: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .background(if (selected) Brand else Color.Transparent)
-            .border(1.dp, if (selected) Brand else Line, RoundedCornerShape(20.dp))
+            .border(1.dp, if (selected) Brand else MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp),
     ) {
