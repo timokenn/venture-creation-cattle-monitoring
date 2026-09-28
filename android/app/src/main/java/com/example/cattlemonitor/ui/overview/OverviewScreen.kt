@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 
 import androidx.compose.ui.text.style.TextAlign
@@ -78,7 +79,10 @@ fun OverviewScreen(
             Text(stringResource(R.string.overview_title), style = MaterialTheme.typography.headlineSmall)
             val list = cows.orEmpty()
             Text(
-                stringResource(R.plurals.overview_cow_count, list.size, list.size) + " · " +
+                // NOTE: plurals need pluralStringResource — stringResource() on a
+                // <plurals> id throws Resources$NotFoundException (the post-login
+                // crash on real devices).
+                pluralStringResource(R.plurals.overview_cow_count, list.size, list.size) + " · " +
                     stringResource(R.string.overview_updated_now),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
