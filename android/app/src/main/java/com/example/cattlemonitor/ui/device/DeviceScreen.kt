@@ -102,6 +102,8 @@ fun DeviceScreen(vm: DeviceViewModel = viewModel()) {
     }
     // Photo pick → upload to Storage → update cow row (photo feature).
     var photoTarget by remember { mutableStateOf<com.example.cattlemonitor.data.Cow?>(null) }
+    // Cows that already HAVE a photo get a change/remove chooser instead.
+    var photoChoiceTarget by remember { mutableStateOf<com.example.cattlemonitor.data.Cow?>(null) }
     val pickPhoto = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.GetContent(),
     ) { uri ->
@@ -115,6 +117,38 @@ fun DeviceScreen(vm: DeviceViewModel = viewModel()) {
             }
         }
         photoTarget = null
+    }
+    photoChoiceTarget?.let { target ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { photoChoiceTarget = null },
+            title = { Text(target.name) },
+            text = { Text(stringResource(R.string.devices_photo_choose_hint)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        photoChoiceTarget = null
+                        photoTarget = target
+                        pickPhoto.launch("image/*")
+                    },
+                ) { Text(stringResource(R.string.devices_photo_change)) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        photoChoiceTarget = null
+                        vm.removeCowPhoto(target.id) { result ->
+                            message = result.fold(
+                                onSuccess = { context.getString(R.string.devices_photo_removed) },
+                                onFailure = { context.getString(R.string.devices_error_prefix, it.message ?: "") },
+                            )
+                        }
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = Accent,
+                    ),
+                ) { Text(stringResource(R.string.devices_photo_remove)) }
+            },
+        )
     }
 
 
@@ -206,8 +240,13 @@ fun DeviceScreen(vm: DeviceViewModel = viewModel()) {
                             cow = cow,
                             size = 34.dp,
                             onClick = {
-                                photoTarget = cow
-                                pickPhoto.launch("image/*")
+                                if (cow.imageUrl != null) {
+                                    // Already has a photo: offer change or remove.
+                                    photoChoiceTarget = cow
+                                } else {
+                                    photoTarget = cow
+                                    pickPhoto.launch("image/*")
+                                }
                             },
                         )
                         Column(modifier = Modifier.weight(1f).padding(start = 10.dp)) {

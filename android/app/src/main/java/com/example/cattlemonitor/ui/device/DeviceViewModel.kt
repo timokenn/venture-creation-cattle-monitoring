@@ -24,6 +24,11 @@ class DeviceViewModel : ViewModel() {
         viewModelScope.launch { onDone(repo.updateCow(id, name, deviceId)) }
     }
 
+    /** Clears the cow's profile photo (avatar falls back to the initial). */
+    fun removeCowPhoto(cowId: String, onDone: (Result<Unit>) -> Unit) {
+        viewModelScope.launch { onDone(repo.updateCow(cowId, removePhoto = true)) }
+    }
+
     fun deleteCow(id: String, onDone: (Result<Unit>) -> Unit) {
         viewModelScope.launch { onDone(repo.deleteCow(id)) }
     }

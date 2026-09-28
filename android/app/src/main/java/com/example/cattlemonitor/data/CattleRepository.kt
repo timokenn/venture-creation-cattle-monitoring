@@ -176,13 +176,20 @@ class CattleRepository(
         json.decodeFromString<CowIdResponse>(body).id
     }
 
-    suspend fun updateCow(id: String, name: String?, deviceId: String?, imageUrl: String? = null): Result<Unit> =
+    suspend fun updateCow(
+        id: String,
+        name: String? = null,
+        deviceId: String? = null,
+        imageUrl: String? = null,
+        removePhoto: Boolean = false,
+    ): Result<Unit> =
         runCatching {
-            val payload: Map<String, String> = buildMap {
+            val payload = buildMap<String, Any> {
                 put("id", id)
                 if (!name.isNullOrBlank()) put("name", name)
                 if (!deviceId.isNullOrBlank()) put("device_id", deviceId)
                 if (!imageUrl.isNullOrBlank()) put("image_url", imageUrl)
+                if (removePhoto) put("remove_photo", true)
             }
             val (code, body) = invokeFunction("update-cow", json.encodeToString(payload))
             when {

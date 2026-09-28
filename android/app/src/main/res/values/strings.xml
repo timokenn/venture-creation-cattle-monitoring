@@ -111,6 +111,10 @@
     <string name="devices_add">Add cow</string>
     <string name="devices_scan_qr">Scan QR</string>
     <string name="devices_photo_saved">Photo saved.</string>
+    <string name="devices_photo_removed">Photo removed.</string>
+    <string name="devices_photo_change">Change photo</string>
+    <string name="devices_photo_remove">Remove photo</string>
+    <string name="devices_photo_choose_hint">What would you like to do with this photo?</string>
     <string name="devices_rename">Rename</string>
     <string name="devices_rename_title">Rename cow</string>
     <string name="devices_renamed">Renamed.</string>

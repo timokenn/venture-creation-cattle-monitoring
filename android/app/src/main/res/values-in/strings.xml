@@ -109,6 +109,10 @@
     <string name="devices_add">Tambah sapi</string>
     <string name="devices_scan_qr">Pindai QR</string>
     <string name="devices_photo_saved">Foto tersimpan.</string>
+    <string name="devices_photo_removed">Foto dihapus.</string>
+    <string name="devices_photo_change">Ganti foto</string>
+    <string name="devices_photo_remove">Hapus foto</string>
+    <string name="devices_photo_choose_hint">Apa yang ingin dilakukan dengan foto ini?</string>
     <string name="devices_rename">Ganti nama</string>
     <string name="devices_rename_title">Ganti nama sapi</string>
     <string name="devices_renamed">Nama diganti.</string>

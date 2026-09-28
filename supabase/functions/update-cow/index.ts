@@ -18,13 +18,21 @@ Deno.serve(async (req) => {
     const id = typeof body?.id === "string" ? body.id : "";
     if (!id) return new Response("id is required", { status: 400 });
 
-    const patch: Record<string, string> = {};
+    interface CowPatch {
+      name?: string;
+      device_id?: string;
+      image_url?: string | null;
+    }
+    const patch: CowPatch = {};
     if (typeof body?.name === "string" && body.name.trim()) patch.name = body.name.trim();
     if (typeof body?.device_id === "string" && body.device_id.trim()) {
       patch.device_id = body.device_id.trim();
     }
-    // Profile photo URL (Storage public URL, set by the app after upload).
-    if (typeof body?.image_url === "string" && body.image_url.startsWith("http")) {
+    // Profile photo: set a new Storage public URL, or clear it entirely with
+    // "remove_photo": true (SQL NULL — the avatar falls back to the initial).
+    if (body?.remove_photo === true) {
+      patch.image_url = null;
+    } else if (typeof body?.image_url === "string" && body.image_url.startsWith("http")) {
       patch.image_url = body.image_url;
     }
     if (Object.keys(patch).length === 0) {
