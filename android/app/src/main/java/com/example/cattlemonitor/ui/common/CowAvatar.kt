@@ -14,17 +14,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.request.ImageRequest
 import com.example.cattlemonitor.data.Cow
 import com.example.cattlemonitor.ui.theme.Brand
 
 /**
- * Cow avatar (#photo feature): shows the user's uploaded photo when present,
- * otherwise the ear-tag chip motif with the cow's initial. Reused on the
- * herd card and the detail header. [onClick] makes it an "add/change photo"
- * affordance on the detail screen.
+ * Cow avatar: shows the user's uploaded photo when present, otherwise the
+ * ear-tag chip motif with the cow's initial. NEVER blank — while the photo is
+ * downloading, or if it is missing/corrupt (broken URL, undecodable file),
+ * the initial badge renders in its place.
+ *
+ * [onClick] makes it an "add/change photo" affordance on the Devices screen.
  */
 @Composable
 fun CowAvatar(
@@ -42,22 +46,33 @@ fun CowAvatar(
 
     val url = cow?.imageUrl
     if (url != null) {
-        AsyncImage(
-            model = url,
+        SubcomposeAsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(url)
+                .crossfade(true)
+                .build(),
             contentDescription = cow?.name,
             contentScale = ContentScale.Crop,
             modifier = base,
+            loading = { InitialBadge(name = cow?.name, modifier = Modifier.fillMaxSize()) },
+            error = { InitialBadge(name = cow?.name, modifier = Modifier.fillMaxSize()) },
         )
     } else {
-        Box(
-            modifier = base.background(Brand),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = (cow?.name ?: "?").take(1).uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimary,
-            )
-        }
+        InitialBadge(name = cow?.name, modifier = base)
+    }
+}
+
+/** Brand-colored ear-tag box with the cow's initial — the universal fallback. */
+@Composable
+private fun InitialBadge(name: String?, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.background(Brand),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = (name ?: "?").take(1).uppercase(),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onPrimary,
+        )
     }
 }
