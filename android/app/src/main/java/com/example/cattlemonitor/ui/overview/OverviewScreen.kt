@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -199,63 +200,41 @@ private fun statusLabelPlain(status: CowStatus) = stringResource(
 )
 
 /**
- * Cow card in two genuinely different layouts: GRID = compact square-ish tile
- * (avatar beside the name); STACK = full-width list row with a large photo on
- * the left and the details to the right. Both show the cow's profile photo
- * when she has one.
+ * Cow card, per the approved design: rounded 20dp card whose status badge is
+ * an ear tag hanging OFF THE TOP-RIGHT CORNER (offset upward, overlapping the
+ * edge). Grid = 2-column compact card; Stack = identical card, full width.
+ * Only shape/position differ — contents are the same in both modes.
  */
 @Composable
 private fun CowCard(cow: Cow, stack: Boolean, onClick: () -> Unit) {
     val now = remember { Date() }
     val status = cow.effectiveStatus(now) // instant OFFLINE within ~1 min of silence
-    val card = Modifier
-        .background(Surface, RoundedCornerShape(10.dp))
-        .border(1.dp, Line, RoundedCornerShape(10.dp))
-        .clickable(onClick = onClick)
 
-    if (stack) {
-        Row(
-            modifier = card.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Box(modifier = Modifier.padding(top = 8.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Surface, RoundedCornerShape(20.dp))
+                .border(1.dp, Line, RoundedCornerShape(20.dp))
+                .clickable(onClick = onClick)
+                .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 14.dp),
         ) {
-            CowAvatar(cow = cow, size = 56.dp)
-            Column(modifier = Modifier.weight(1f)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(cow.name, style = MaterialTheme.typography.titleMedium)
-                    StatusBadge(status)
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        cow.latestTemp?.let { "${String.format("%.1f", it)}°C" } ?: "—",
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                    cow.batteryLevel?.let { BatteryIndicator(it) }
-                }
-                LastSeenText(cow)
-            }
-        }
-    } else {
-        Column(modifier = card.padding(12.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                CowAvatar(cow = cow, size = 30.dp)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    cow.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                StatusBadge(status)
-            }
-            Spacer(modifier = Modifier.height(4.dp))
+            Text(cow.name, style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 cow.latestTemp?.let { "${String.format("%.1f", it)}°C" } ?: "—",
                 style = MaterialTheme.typography.headlineSmall,
             )
-            cow.batteryLevel?.let { BatteryIndicator(it) }
             LastSeenText(cow)
+            cow.batteryLevel?.let { BatteryIndicator(it) }
         }
+        // Ear tag hanging over the top-right corner (8dp above the card edge).
+        StatusBadge(
+            status = status,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(y = (-8).dp),
+        )
     }
 }
 

@@ -45,9 +45,9 @@ private val EarTagShape = GenericShape { size, _ ->
 }
 
 @Composable
-fun StatusBadge(status: CowStatus) {
+fun StatusBadge(status: CowStatus, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .clip(EarTagShape)
             .background(statusColor(status)),
         contentAlignment = Alignment.Center,
