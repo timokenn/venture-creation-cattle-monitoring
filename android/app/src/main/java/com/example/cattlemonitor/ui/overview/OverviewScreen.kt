@@ -214,28 +214,31 @@ private fun CowCard(cow: Cow, stack: Boolean, onClick: () -> Unit) {
     val status = cow.effectiveStatus(now) // instant OFFLINE within ~1 min of silence
 
     Box(modifier = Modifier.padding(top = 8.dp)) {
-        Row {
-            // Stack mode has the width for the cow's photo; Grid stays compact.
-            if (stack) {
-                CowAvatar(cow = cow, size = 56.dp, modifier = Modifier.padding(top = 10.dp))
-                Spacer(Modifier.width(12.dp))
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .background(Surface, RoundedCornerShape(20.dp))
-                    .border(1.dp, Line, RoundedCornerShape(20.dp))
-                    .clickable(onClick = onClick)
-                    .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 14.dp),
-            ) {
-                Text(cow.name, style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    cow.latestTemp?.let { "${String.format("%.1f", it)}°C" } ?: "—",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-                LastSeenText(cow)
-                cow.batteryLevel?.let { BatteryIndicator(it) }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Surface, RoundedCornerShape(20.dp))
+                .border(1.dp, Line, RoundedCornerShape(20.dp))
+                .clickable(onClick = onClick)
+                .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 14.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Stack mode has the width for the cow's photo INSIDE the card;
+                // Grid stays compact.
+                if (stack) {
+                    CowAvatar(cow = cow, size = 56.dp)
+                    Spacer(Modifier.width(12.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(cow.name, style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        cow.latestTemp?.let { "${String.format("%.1f", it)}°C" } ?: "—",
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    LastSeenText(cow)
+                    cow.batteryLevel?.let { BatteryIndicator(it) }
+                }
             }
         }
         // Ear tag hanging over the top-right corner (8dp above the card edge).
