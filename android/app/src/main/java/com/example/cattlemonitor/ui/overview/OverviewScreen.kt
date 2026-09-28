@@ -78,12 +78,17 @@ fun OverviewScreen(
         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
             Text(stringResource(R.string.overview_title), style = MaterialTheme.typography.headlineSmall)
             val list = cows.orEmpty()
+            // Live freshness: age of the newest last_seen across the herd, not a
+            // hardcoded "updated moments ago". Falls back to the plain phrase
+            // when no cow has ever reported (all null last_seen).
+            val newest = list.mapNotNull { it.lastSeen }.maxOrNull()
+            val freshness = newest?.let { stringResource(R.string.overview_updated_relative, relativeTime(it)) }
+                ?: stringResource(R.string.overview_updated_now)
             Text(
                 // NOTE: plurals need pluralStringResource — stringResource() on a
                 // <plurals> id throws Resources$NotFoundException (the post-login
                 // crash on real devices).
-                pluralStringResource(R.plurals.overview_cow_count, list.size, list.size) + " · " +
-                    stringResource(R.string.overview_updated_now),
+                pluralStringResource(R.plurals.overview_cow_count, list.size, list.size) + " · " + freshness,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

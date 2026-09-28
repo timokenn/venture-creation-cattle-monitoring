@@ -14,6 +14,8 @@
     <string name="login_tagline">Masuk untuk memantau kawanan sapi Anda.</string>
     <string name="field_email">Email</string>
     <string name="field_password">Kata sandi</string>
+    <string name="password_show">Tampilkan kata sandi</string>
+    <string name="password_hide">Sembunyikan kata sandi</string>
     <string name="login_button">Masuk</string>
     <string name="signup_button">Daftar</string>
     <string name="login_switch_to_signup">Baru di sini? Buat akun</string>

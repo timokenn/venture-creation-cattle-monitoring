@@ -15,6 +15,8 @@
     <string name="login_tagline">Sign in to keep an eye on your herd.</string>
     <string name="field_email">Email</string>
     <string name="field_password">Password</string>
+    <string name="password_show">Show password</string>
+    <string name="password_hide">Hide password</string>
     <string name="login_button">Log in</string>
     <string name="signup_button">Sign up</string>
     <string name="login_switch_to_signup">New here? Create an account</string>

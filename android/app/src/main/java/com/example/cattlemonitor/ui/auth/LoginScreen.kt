@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -29,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cattlemonitor.R
@@ -46,6 +49,7 @@ fun LoginScreen(onLoggedIn: () -> Unit, vm: LoginViewModel = viewModel()) {
     var error by remember { mutableStateOf<String?>(null) }
     var info by remember { mutableStateOf<String?>(null) }
     var showResetDialog by remember { mutableStateOf(false) }
+    var showPassword by remember { mutableStateOf(false) }
 
     val lockoutSeconds by vm.lockoutSeconds.collectAsState()
     val failedAttempts by vm.failedAttempts.collectAsState()
@@ -97,7 +101,22 @@ fun LoginScreen(onLoggedIn: () -> Unit, vm: LoginViewModel = viewModel()) {
             onValueChange = { password = it; error = null },
             label = { Text(stringResource(R.string.field_password)) },
             singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation =
+                if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                // Show/hide password — eye open/closed.
+                IconButton(onClick = { showPassword = !showPassword }) {
+                    Icon(
+                        painter = painterResource(
+                            if (showPassword) R.drawable.ic_visibility_off else R.drawable.ic_visibility,
+                        ),
+                        contentDescription = stringResource(
+                            if (showPassword) R.string.password_hide else R.string.password_show,
+                        ),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
         )
         error?.let {
