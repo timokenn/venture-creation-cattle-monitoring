@@ -3,15 +3,14 @@ package com.example.cattlemonitor.data
 import androidx.annotation.VisibleForTesting
 import com.example.cattlemonitor.BuildConfig
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.postgrest.Order
-import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.realtime
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.header
@@ -27,9 +26,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.Date
 import java.util.UUID
@@ -39,25 +42,28 @@ class CowNotFoundException : Exception("Cow no longer exists")
 class SupabaseFunctionException(val code: Int, detail: String) :
     Exception("Function error $code: $detail")
 
+
+/** One aggregated time bucket from readings_downsample() (#10). */
+data class Bucket(
+    val bucketStart: Date,
+    val tempAvg: Double?,
+    val activityAvg: Double?,
+    val samples: Long,
+)
+
 /**
  * Single gateway to Supabase for the whole app: PostgREST reads, Edge
  * Function writes (the app has no direct write access by design), and FCM
  * token registration.
  *
- * Live updates use Realtime postgres_changes purely as an *invalidation
- * signal* — every emission is served by the same PostgREST read path, so
- * snapshot-shape parsing sits in exactly one place and a missed/undecodable
- * realtime event can at worst delay a refresh, never corrupt it. A periodic
- * poll fallback covers realtime outages or a missing publication.
+ * Uses the SHARED app client (with the Auth plugin installed) — see
+ * ServiceLocator. That way every PostgREST/Realtime request automatically
+ * carries the logged-in user's access token, which per-owner RLS
+ * (cows.owner_id = auth.uid()) requires: users only ever see their own cows.
  */
 class CattleRepository(
-    private val client: SupabaseClient = createSupabaseClient(
-        supabaseUrl = BuildConfig.SUPABASE_URL,
-        supabaseKey = BuildConfig.SUPABASE_ANON_KEY,
-    ) {
-        install(Postgrest)
-        install(Realtime)
-    },
+    private val client: SupabaseClient,
+    private val tokenProvider: () -> String? = { null },
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val http = HttpClient()
@@ -98,7 +104,7 @@ class CattleRepository(
                     eq("cow_id", cowId)
                     gt("timestamp", since.toInstant().toString())
                 }
-                order("timestamp", Order.DESCENDING)
+                order("timestamp", order = Order.DESCENDING)
                 limit(5000)
             }
             .decodeList<ReadingDto>()
@@ -107,7 +113,7 @@ class CattleRepository(
     private suspend fun fetchAlerts(cowId: String?): List<Alert> =
         client.postgrest.from("alerts")
             .select {
-                order("timestamp", Order.DESCENDING)
+                order("timestamp", order = Order.DESCENDING)
                 limit(500)
             }
             .decodeList<AlertDto>()
@@ -151,7 +157,7 @@ class CattleRepository(
                 }
             } finally {
                 realtimeJob.cancel()
-                subscribed?.let { runCatching { client.removeChannel(it) } }
+                subscribed?.let { runCatching { client.realtime.removeChannel(it) } }
             }
         }
     }
@@ -165,23 +171,24 @@ class CattleRepository(
         )
         when {
             code == 409 -> throw DeviceInUseException()
-            !code.isSuccess() -> throw SupabaseFunctionException(code, body)
+            !(code in 200..299) -> throw SupabaseFunctionException(code, body)
         }
         json.decodeFromString<CowIdResponse>(body).id
     }
 
-    suspend fun updateCow(id: String, name: String?, deviceId: String?): Result<Unit> =
+    suspend fun updateCow(id: String, name: String?, deviceId: String?, imageUrl: String? = null): Result<Unit> =
         runCatching {
             val payload: Map<String, String> = buildMap {
                 put("id", id)
                 if (!name.isNullOrBlank()) put("name", name)
                 if (!deviceId.isNullOrBlank()) put("device_id", deviceId)
+                if (!imageUrl.isNullOrBlank()) put("image_url", imageUrl)
             }
             val (code, body) = invokeFunction("update-cow", json.encodeToString(payload))
             when {
                 code == 409 -> throw DeviceInUseException()
                 code == 404 -> throw CowNotFoundException()
-                !code.isSuccess() -> throw SupabaseFunctionException(code, body)
+                !(code in 200..299) -> throw SupabaseFunctionException(code, body)
             }
         }
 
@@ -189,21 +196,74 @@ class CattleRepository(
         val (code, body) = invokeFunction("delete-cow", json.encodeToString(mapOf("id" to id)))
         when {
             code == 404 -> throw CowNotFoundException()
-            !code.isSuccess() -> throw SupabaseFunctionException(code, body)
+            !(code in 200..299) -> throw SupabaseFunctionException(code, body)
         }
     }
 
     suspend fun registerFcmToken(token: String): Result<Unit> = runCatching {
         val (code, body) = invokeFunction("register-token", json.encodeToString(FcmTokenBody(token)))
-        if (!code.isSuccess()) throw SupabaseFunctionException(code, body)
+        if (code !in 200..299) throw SupabaseFunctionException(code, body)
     }
+
+    /** Raw wire rows for CSV export (#5): exact timestamps + quality flags. */
+    @Serializable
+    data class ExportRow(val timestamp: String, val temperature: Double, val activity: Double?, val quality: String?)
+
+    @Serializable
+    internal data class BucketDto(
+        @SerialName("bucket_start") val bucketStart: String,
+        @SerialName("temp_avg") val tempAvg: Double? = null,
+        @SerialName("activity_avg") val activityAvg: Double? = null,
+        @SerialName("samples") val samples: Long = 0,
+    )
+
+    internal fun BucketDto.toDomain() = Bucket(
+        bucketStart = isoToDate(bucketStart) ?: Date(0),
+        tempAvg = tempAvg,
+        activityAvg = activityAvg,
+        samples = samples,
+    )
+
+    suspend fun fetchReadingsForExport(cowId: String, since: Date): List<ExportRow> =
+        client.postgrest.from("readings")
+            .select {
+                filter {
+                    eq("cow_id", cowId)
+                    gt("timestamp", since.toInstant().toString())
+                }
+                order("timestamp", order = Order.ASCENDING)
+                limit(20_000)
+            }
+            .decodeList<ReadingDto>()
+            .map { ExportRow(it.timestamp, it.temperature, it.activityIndex, it.dataQuality) }
+
+    /**
+     * Downsampled buckets for the 7d view (#10) — server-side time-bucket
+     * aggregation via readings_downsample(), so a week of 20s readings
+     * (~30k rows) arrives as a few hundred buckets instead of truncating at
+     * the 5,000-row raw cap.
+     */
+    suspend fun fetchDownsampled(cowId: String, since: Date, bucketSeconds: Int = 600): List<Bucket> = runCatching {
+        val params = kotlinx.serialization.json.buildJsonObject {
+            put("p_cow_id", kotlinx.serialization.json.JsonPrimitive(cowId))
+            put("p_since", kotlinx.serialization.json.JsonPrimitive(since.toInstant().toString()))
+            put("p_bucket_seconds", kotlinx.serialization.json.JsonPrimitive(bucketSeconds))
+        }
+        val buckets: List<Bucket> = client.postgrest.rpc("readings_downsample", params)
+            .decodeList<BucketDto>()
+            .map { it.toDomain() }
+        buckets
+    }.getOrElse { emptyList() } // RPC missing (pre-migration) → fall back to raw path
 
     // ------------------------------------------------------------- internals
 
     private suspend fun invokeFunction(name: String, payloadJson: String): Pair<Int, String> {
         val response = http.post("${BuildConfig.SUPABASE_URL}/functions/v1/$name") {
             header("apikey", BuildConfig.SUPABASE_ANON_KEY)
-            bearerAuth(BuildConfig.SUPABASE_ANON_KEY)
+            // Prefer the logged-in user's token: register/update/delete-cow
+            // stamp and enforce ownership from it. Fall back to the publishable
+            // key (pre-login) — those functions then answer 401.
+            bearerAuth(tokenProvider() ?: BuildConfig.SUPABASE_ANON_KEY)
             contentType(ContentType.Application.Json)
             setBody(payloadJson)
         }

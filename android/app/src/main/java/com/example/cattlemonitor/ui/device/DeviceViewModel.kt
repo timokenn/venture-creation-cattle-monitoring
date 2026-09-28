@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 
 class DeviceViewModel : ViewModel() {
     private val repo = ServiceLocator.repository
+    private val uploader = ServiceLocator.photoUploader
 
     val cows: StateFlow<List<Cow>?> = repo.observeCows()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -25,5 +26,20 @@ class DeviceViewModel : ViewModel() {
 
     fun deleteCow(id: String, onDone: (Result<Unit>) -> Unit) {
         viewModelScope.launch { onDone(repo.deleteCow(id)) }
+    }
+
+    /** Uploads the picked image and stores the public URL on the cow row. */
+    fun setCowPhoto(
+        cowId: String,
+        imageUri: android.net.Uri,
+        onDone: (Result<Unit>) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val result = uploader.upload(context = ServiceLocator.appContext(), cowId = cowId, imageUri = imageUri)
+                .mapCatching { url ->
+                    repo.updateCow(cowId, name = null, deviceId = null, imageUrl = url).getOrThrow()
+                }
+            onDone(result)
+        }
     }
 }

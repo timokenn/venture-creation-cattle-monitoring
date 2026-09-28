@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.cattlemonitor.R
+import com.example.cattlemonitor.ServiceLocator
 import com.example.cattlemonitor.data.AlertType
 import com.example.cattlemonitor.settings.NotificationPrefs
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -31,8 +32,11 @@ class CattleMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         val cowId = message.data["cowId"] ?: return
         val type = AlertType.from(message.data["type"]) ?: return
-        val title = message.notification?.title ?: "Cattle alert"
-        val body = message.notification?.body ?: ""
+        // Data-only push: the payload carries title/body so the service always
+        // builds the notification itself — with a contentIntent, so a tap
+        // deep-links to the cow even from a cold start (backgrounded app).
+        val title = message.data["title"] ?: "Cattle alert"
+        val body = message.data["body"] ?: ""
 
         val enabled = runBlocking {
             NotificationPrefs(this@CattleMessagingService).enabled.first()
@@ -53,8 +57,9 @@ class CattleMessagingService : FirebaseMessagingService() {
             Intent.ACTION_VIEW,
             Uri.parse("cattleapp://cow/$cowId"),
         ).setPackage(packageName)
+        // One-shot: every alert gets its own tap target (no cross-alert reuse).
         val pending = PendingIntent.getActivity(
-            this, 0, intent,
+            this, cowId.hashCode(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)

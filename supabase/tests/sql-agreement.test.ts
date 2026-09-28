@@ -48,7 +48,7 @@ async function applyDecision(p: ApplyParams): Promise<void> {
     `select public.apply_reading_decision(
        $1::uuid, $2::uuid, $3::timestamptz, $4::float8, $5::float8,
        $6::boolean, $7::text, $8::text, $9::float8, $10::float8,
-       $11::int, $12::jsonb, $13::jsonb
+       $11::int, $12::jsonb, $13::jsonb, null::float8
      )`,
     [
       p.readingId,
@@ -198,16 +198,16 @@ describe("apply_reading_decision (real schema.sql on PGlite)", () => {
       baselineActivity: 1.0,
       baselineSamples: BASELINE_MIN_SAMPLES,
     });
-    const readingId = await insertReading(cowId, 38.0); // row inserted, then flagged invalid by logic
+    const readingId = await insertReading(cowId, 38.0); // row inserted, then flagged suspicious by logic
 
     await applyDecision({
       readingId,
       cowId,
       readingTs: new Date().toISOString(),
-      temperature: 50, // out of range → decide() marks valid=false upstream
+      temperature: 50, // out of range → decide() stores valid=true + temp_out_of_range
       activityIndex: 2.0,
-      valid: false,
-      dataQuality: "ok",
+      valid: true,
+      dataQuality: "temp_out_of_range",
       statusAfter: "normal",
       alphaTemp: 0.005,
       alphaActivity: 0.005,
@@ -218,8 +218,8 @@ describe("apply_reading_decision (real schema.sql on PGlite)", () => {
 
     const row = await cowRow(cowId);
     expect(Number(row.baseline_temp)).toBe(38.0);
-    expect(row.baseline_samples).toBe(BASELINE_MIN_SAMPLES); // unchanged
-    expect(row.latest_temp).toBeNull(); // a glitch never overwrites the shown value
+    expect(row.baseline_samples).toBe(BASELINE_MIN_SAMPLES); // unchanged — suspicious data never teaches baselines
+    expect(Number(row.latest_temp)).toBe(50); // suspicious data IS shown (app flags it)
     expect(Number(row.baseline_activity)).toBeCloseTo(1.0 + 0.005 * 1.0, 12); // activity still advances
   });
 

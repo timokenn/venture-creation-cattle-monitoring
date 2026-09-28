@@ -41,15 +41,22 @@ const command = args._[0] ?? "help";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL ?? "").replace(/\/$/, "");
 const SUPABASE_KEY = process.env.SUPABASE_KEY ?? "";
+// Optional service-role key: cows SELECT is per-owner now (cows.owner_id RLS),
+// so anon reads return []. With SUPABASE_SERVICE_ROLE set, seeding/listing see
+// every cow; without it, only inserts and the lookup_cow_id RPC work.
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE ?? "";
+// Required now that the open anon INSERT on readings is revoked: the shared
+// collar secret (supabase secrets set COLLAR_INGEST_KEY=...).
+const COLLAR_KEY = process.env.COLLAR_INGEST_KEY ?? "";
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error("Set SUPABASE_URL and SUPABASE_KEY (publishable key) in the environment.");
+if (!SUPABASE_URL || !SUPABASE_KEY || !COLLAR_KEY) {
+  console.error("Set SUPABASE_URL, SUPABASE_KEY (publishable) and COLLAR_INGEST_KEY in the environment.");
   process.exit(command === "help" ? 0 : 1);
 }
 
 const HEADERS = {
-  apikey: SUPABASE_KEY,
-  Authorization: `Bearer ${SUPABASE_KEY}`,
+  apikey: SERVICE_KEY || SUPABASE_KEY,
+  Authorization: `Bearer ${SERVICE_KEY || SUPABASE_KEY}`,
   "Content-Type": "application/json",
   Prefer: "return=representation",
 };
@@ -71,12 +78,30 @@ Scenarios: ${SCENARIOS.join(", ")}`);
 }
 
 async function api(path, init) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: HEADERS, ...init });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${init?.method ?? "GET"} ${path} → ${res.status}: ${text}`);
+  // Resilient fetch: cloud inserts occasionally stall on header timeouts,
+  // so retry up to 3 times with a 60s per-attempt cap.
+  let lastErr;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+        headers: HEADERS,
+        signal: AbortSignal.timeout(60_000),
+        ...init,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`${init?.method ?? "GET"} ${path} → ${res.status}: ${text}`);
+      }
+      return res.status === 204 ? null : res.json();
+    } catch (err) {
+      lastErr = err;
+      // 4xx are real rejections (RLS, bad payload) — retrying won't help.
+      const status = Number(String(err?.message ?? err).match(/→ (\d{3})/)?.[1] ?? 0);
+      if (status >= 400 && status < 500) throw err;
+      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 2_000));
+    }
   }
-  return res.status === 204 ? null : res.json();
+  throw lastErr;
 }
 
 async function ensureCow(cowId, name) {
@@ -103,32 +128,60 @@ function resolveProfile(scenarioName) {
   return profile;
 }
 
-function toRow(cowId, sample, at) {
+// Ingest payload — device_id form, matching what the collar firmware posts
+// to ingest-reading (server resolves device_id -> cow, stamps timestamp).
+function toIngestPayload(deviceId, sample) {
   return {
-    cow_id: cowId,
-    timestamp: at.toISOString(),
+    device_id: `esp32-${deviceId}`,
     temperature: sample.temperature,
-    accel_x: sample.accel.x,
-    accel_y: sample.accel.y,
-    accel_z: sample.accel.z,
-    gyro_x: sample.gyro.x,
-    gyro_y: sample.gyro.y,
-    gyro_z: sample.gyro.z,
+    accel: sample.accel,
+    gyro: sample.gyro,
   };
 }
 
+/** POST one reading through the hardened ingest endpoint. */
+async function ingestReading(deviceId, sample) {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/ingest-reading`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-collar-key": COLLAR_KEY,
+    },
+    body: JSON.stringify(toIngestPayload(deviceId, sample)),
+  });
+  if (!res.ok) {
+    throw new Error(`ingest-reading -> ${res.status}: ${await res.text()}`);
+  }
+}
+
 async function writeReadingsBatched(cowId, items) {
-  for (let i = 0; i < items.length; i += BATCH_SIZE) {
-    const chunk = items.slice(i, i + BATCH_SIZE).map(({ sample, at }) => toRow(cowId, sample, at));
-    await api("readings", { method: "POST", body: JSON.stringify(chunk) });
+  // Ingest endpoint is rate-limited (1 reading / 600s per device by design,
+  // burst 5) — historical batch seeding is no longer possible through it.
+  // Seeding now streams at the natural cadence via `stream`, or needs a
+  // temporary service-role window (SUPABASE_SERVICE_ROLE env).
+  if (SERVICE_KEY) {
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const chunk = items
+        .slice(i, i + BATCH_SIZE)
+        .map(({ sample, at }) => ({
+          cow_id: cowId,
+          timestamp: at.toISOString(),
+          temperature: sample.temperature,
+          accel_x: sample.accel.x,
+          accel_y: sample.accel.y,
+          accel_z: sample.accel.z,
+          gyro_x: sample.gyro.x,
+          gyro_y: sample.gyro.y,
+          gyro_z: sample.gyro.z,
+        }));
+      await api("readings", { method: "POST", body: JSON.stringify(chunk) });
+    }
+    return;
   }
-  const last = items[items.length - 1];
-  if (last) {
-    await api(`cows?id=eq.${cowId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ last_seen: last.at.toISOString() }),
-    });
-  }
+  console.error("seeding needs SUPABASE_SERVICE_ROLE (ingest endpoint is rate-limited per device)");
+  process.exit(1);
+  // NOTE: no cows PATCH here — devices only write readings. last_seen and
+  // status are maintained server-side by the process-reading webhook/RPC.
 }
 
 async function seed(cowId, days, intervalS, scenarioName) {
@@ -161,10 +214,7 @@ function stream(cowId, scenarioName, intervalS) {
         cowUuid = cow.id;
       }
       const sample = PROFILES[scenarioName](tick);
-      await api("readings", {
-        method: "POST",
-        body: JSON.stringify(toRow(cowUuid, sample, at)),
-      });
+      await ingestReading(cowId, sample);
       console.log(`  [${at.toISOString()}] T=${sample.temperature.toFixed(2)}°C`);
     } catch (err) {
       console.error(String(err?.message ?? err));
@@ -183,7 +233,11 @@ function stream(cowId, scenarioName, intervalS) {
 async function listCows() {
   const cows = await api("cows?select=id,name,current_status,last_seen,baseline_temp&order=name");
   if (cows.length === 0) {
-    console.log("no cows registered");
+    console.log(
+      SERVICE_KEY
+        ? "no cows registered"
+        : "no cows visible — cows are per-owner now; set SUPABASE_SERVICE_ROLE to list/seed across owners",
+    );
     return;
   }
   for (const c of cows) {

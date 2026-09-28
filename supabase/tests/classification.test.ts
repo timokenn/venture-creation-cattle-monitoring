@@ -268,7 +268,7 @@ describe("decide (pipeline integration)", () => {
     expect(d.ops[0]).toMatchObject({ op: "create", type: "fever" });
   });
 
-  it("marks out-of-range temperature invalid and skips classification", () => {
+  it("marks out-of-range temperature suspicious: stored valid=true, flagged, never taught to baselines", () => {
     const d = decide(
       { temperature: 50, accel: { x: 0, y: 0, z: 1 }, gyro: { x: 0, y: 0, z: 0 } },
       cow,
@@ -277,9 +277,10 @@ describe("decide (pipeline integration)", () => {
       { now: new Date(NOW) },
     );
     expect(d.classification).toBe("invalid");
-    expect(d.reading.valid).toBe(false);
-    expect(d.activeTypes).toEqual([]);
-    expect(d.baseline_temp).toBe(38.0);
+    expect(d.reading.valid).toBe(true); // shown in the app...
+    expect(d.reading.data_quality).toBe("temp_out_of_range"); // ...flagged suspicious
+    expect(d.activeTypes).toEqual([]); // ...but never alerts
+    expect(d.baseline_temp).toBe(38.0); // ...and never updates the temp baseline
     expect(d.baseline_samples).toBe(cow.baseline_samples);
   });
 

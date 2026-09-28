@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DeCow</string>
+
+    <!-- Navigasi bawah -->
+    <string name="nav_herd">Kawanan</string>
+    <string name="nav_alerts">Peringatan</string>
+    <string name="nav_devices">Perangkat</string>
+    <string name="nav_settings">Pengaturan</string>
+
+    <!-- Login / autentikasi -->
+    <string name="login_welcome_back">Selamat datang kembali</string>
+    <string name="login_create_account">Buat akun</string>
+    <string name="login_tagline">Masuk untuk memantau kawanan sapi Anda.</string>
+    <string name="field_email">Email</string>
+    <string name="field_password">Kata sandi</string>
+    <string name="login_button">Masuk</string>
+    <string name="signup_button">Daftar</string>
+    <string name="login_switch_to_signup">Baru di sini? Buat akun</string>
+    <string name="signup_switch_to_login">Sudah punya akun? Masuk</string>
+    <string name="forgot_password">Lupa kata sandi?</string>
+    <string name="login_locked_button">Terkunci — tunggu %1$d dtk</string>
+    <string name="login_locked_message">Terlalu banyak percobaan gagal. Demi keamanan, tunggu %1$d detik sebelum mencoba lagi, atau atur ulang kata sandi Anda di bawah.</string>
+    <string name="login_attempts_hint">%1$d dari %2$d percobaan gagal — Anda bisa mengatur ulang kata sandi di bawah.</string>
+    <string name="reset_password_title">Atur ulang kata sandi</string>
+    <string name="reset_password_body">Masukkan email Anda dan kami akan mengirim tautan untuk membuat kata sandi baru.</string>
+    <string name="reset_password_send">Kirim tautan atur ulang</string>
+    <string name="reset_password_sent">Email atur ulang terkirim — cek kotak masuk (dan folder spam) Anda.</string>
+    <string name="cancel">Batal</string>
+    <string name="error_generic">Terjadi kesalahan. Silakan coba lagi.</string>
+    <string name="error_invalid_credentials">Email atau kata sandi salah.</string>
+    <string name="error_email_not_confirmed">Email ini belum dikonfirmasi. Cek kotak masuk Anda untuk tautan konfirmasi.</string>
+    <string name="error_rate_limited">Terlalu banyak permintaan — tunggu sejenak dan coba lagi.</string>
+    <string name="error_email_in_use">Email itu sudah terdaftar. Coba masuk saja.</string>
+    <string name="error_weak_password">Kata sandi terlalu lemah — gunakan minimal 6 karakter.</string>
+    <string name="error_invalid_email">Itu sepertinya bukan alamat email yang valid.</string>
+    <string name="error_network">Tidak dapat menghubungi server. Periksa koneksi internet Anda.</string>
+
+    <!-- Lencana status (anting) -->
+    <string name="status_ok">OK</string>
+    <string name="status_watch">WASPADAI</string>
+    <string name="status_alert">WASPADA</string>
+    <string name="status_offline">OFFLINE</string>
+
+    <!-- Penjelasan status (detail sapi) -->
+    <string name="status_normal_explain">Semua pembacaan normal — suhu dan aktivitas dekat dengan garis dasar sapi ini.</string>
+    <string name="status_warning_explain">Perlu dipantau: pembacaan mulai menjauh dari garis dasar sapi ini.</string>
+    <string name="status_alert_explain">Kemungkinan masalah kesehatan terdeteksi — suhu atau gerakan jauh di luar garis dasar.</string>
+    <string name="status_offline_no_data">Belum ada data yang diterima dari perangkat ini.</string>
+    <string name="status_offline_no_readings">Sudah lama tidak ada pembacaan — perangkat mungkin mati atau di luar jangkauan.</string>
+    <string name="last_reading_ago">Pembacaan terakhir %1$s.</string>
+
+    <!-- Waktu relatif -->
+    <string name="time_never">belum pernah</string>
+    <string name="time_just_now">baru saja</string>
+    <string name="time_minutes_ago">%1$d mnt lalu</string>
+    <string name="time_hours_ago">%1$d jam lalu</string>
+    <string name="time_days_ago">%1$d hari lalu</string>
+
+    <!-- Pengalih tata letak ringkasan -->
+    <string name="layout_grid">Kisi</string>
+    <string name="layout_stack">Tumpuk</string>
+
+    <!-- Keadaan offline -->
+    <string name="offline_title">Tidak ada sinyal</string>
+    <string name="offline_body">DeCow tidak dapat menghubungi server saat ini. Data sapi dan peringatan Anda akan muncul kembali secara otomatis setelah koneksi pulih.</string>
+    <string name="offline_reconnect_hint">Periksa Wi-Fi atau data seluler — layar ini diperbarui dengan sendirinya.</string>
+    <string name="offline_banner">Luring — menampilkan data terakhir yang diketahui</string>
+
+    <!-- Ringkasan -->
+    <string name="overview_title">Kawanan</string>
+    <plurals name="overview_cow_count">
+        <item quantity="other">%1$d sapi</item>
+    </plurals>
+    <string name="overview_updated_now">diperbarui saat ini juga</string>
+    <string name="overview_loading">Memuat kawanan…</string>
+    <string name="overview_empty">Belum ada sapi.\nGunakan Perangkat → tambahkan sapi beserta device id ESP32-nya.</string>
+    <string name="overview_updated_relative">diperbarui %1$s</string>
+    <string name="overview_no_data_yet">belum ada data diterima</string>
+    <string name="status_label_normal">Normal</string>
+    <string name="status_label_watch">Pantau</string>
+    <string name="status_label_alert">Waspada</string>
+    <string name="status_label_offline">Offline</string>
+
+    <!-- Peringatan -->
+    <string name="alerts_title">Peringatan</string>
+    <string name="alerts_filter_all">Semua</string>
+    <string name="alerts_filter_open">Belum selesai</string>
+    <string name="alerts_filter_done">Selesai</string>
+    <string name="alerts_loading">Memuat peringatan…</string>
+    <string name="alerts_empty">Tidak ada peringatan %1$s.</string>
+    <string name="alerts_resolved_suffix">· selesai</string>
+
+    <!-- Nama jenis peringatan -->
+    <string name="alert_type_fever">demam</string>
+    <string name="alert_type_low_activity">aktivitas rendah</string>
+    <string name="alert_type_possible_estrus">kemungkinan birahi</string>
+    <string name="alert_type_possible_distress">kemungkinan kesulitan</string>
+    <string name="alert_type_device_offline">perangkat offline</string>
+    <string name="alert_type_sensor_issue">masalah sensor</string>
+
+    <!-- Perangkat -->
+    <string name="devices_title">Perangkat</string>
+    <string name="devices_registered_count">%1$d terdaftar</string>
+    <string name="devices_cow_name">Nama sapi</string>
+    <string name="devices_device_id">Device ID (ESP32)</string>
+    <string name="devices_add">Tambah sapi</string>
+    <string name="devices_scan_qr">Pindai QR</string>
+    <string name="devices_photo_saved">Foto tersimpan.</string>
+    <string name="devices_rename">Ganti nama</string>
+    <string name="devices_rename_title">Ganti nama sapi</string>
+    <string name="devices_renamed">Nama diganti.</string>
+    <string name="devices_photo_hint">Ketuk foto untuk menambah atau mengubahnya</string>
+    <string name="devices_added">Sapi ditambahkan.</string>
+    <string name="devices_error_prefix">Galat: %1$s</string>
+    <string name="devices_conflict">Device ID itu sudah terdaftar untuk sapi lain.</string>
+    <string name="devices_registered_header">PERANGKAT TERDAFTAR</string>
+    <string name="devices_empty">Belum ada sapi yang terdaftar.</string>
+    <string name="devices_remove">Hapus</string>
+    <string name="devices_deleted">Terhapus.</string>
+
+    <!-- Jendela birahi (#7) -->
+    <string name="estrus_window_title">Kemungkinan birahi — %1$s</string>
+    <string name="estrus_window_open">Jendela IB optimal: tersisa ±%1$d jam. Jadwalkan inseminasi sekarang.</string>
+    <string name="estrus_window_upcoming">Jendela dibuka ±%1$d jam lagi (12–18 jam setelah onset paling optimal).</string>
+    <string name="estrus_window_closed">Jendela IB 12–18 jam sudah terlewat.</string>
+
+    <!-- Detail sapi -->
+    <string name="detail_back">← Kawanan</string>
+    <string name="detail_range_24h">24j</string>
+    <string name="detail_range_7d">7h</string>
+    <string name="detail_temp_section">Suhu (°C)</string>
+    <string name="detail_activity_section">Indeks Aktivitas (0–100, relatif terhadap %1$s)</string>
+    <string name="detail_this_cow">sapi ini</string>
+    <string name="detail_alert_history">Riwayat peringatan</string>
+    <string name="detail_no_alerts">Belum ada peringatan untuk sapi ini.</string>
+    <string name="detail_suspicious_caption">◦ %1$d titik berlingkar: suhu di luar rentang wajar sapi — ditampilkan demi transparansi, diabaikan oleh garis dasar dan klasifikasi kesehatan.</string>
+    <string-array name="axis_h24">
+        <item>-24j</item>
+        <item>-18j</item>
+        <item>-12j</item>
+        <item>-6j</item>
+        <item>Kini</item>
+    </string-array>
+    <string-array name="axis_d7">
+        <item>-7h</item>
+        <item>-5h</item>
+        <item>-3h</item>
+        <item>-1h</item>
+        <item>Kini</item>
+    </string-array>
+
+    <!-- Ekspor CSV (#5) -->
+    <string name="export_share_title">Bagikan data DeCow</string>
+    <string name="detail_export">Ekspor CSV</string>
+
+    <!-- Pengaturan / profil / bahasa -->
+    <string name="settings_title">Pengaturan</string>
+    <string name="settings_push_subtitle">Notifikasi push per jenis peringatan</string>
+    <string name="profile_title">Profil</string>
+    <string name="profile_signed_in">Masuk sebagai</string>
+    <string name="profile_logout">Keluar</string>
+    <string name="language_title">Bahasa</string>
+    <string name="language_saved_pre13">Tersimpan. Di versi Android ini, buka ulang aplikasi agar sepenuhnya diterapkan.</string>
+    <string name="language_system">Bawaan sistem</string>
+    <string name="language_english">English</string>
+    <string name="language_indonesian">Bahasa Indonesia</string>
+    <string name="settings_brand_tagline">Kesehatan yang terlihat sebelum terjadi.</string>
+</resources>

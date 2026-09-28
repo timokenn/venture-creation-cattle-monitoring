@@ -25,7 +25,8 @@ Body (one reading):
   an offline buffer can backfill with original timestamps. Cap the buffer
   (oldest dropped first) so an extended outage can't exhaust ESP32 memory.
 - The device needs the **cow UUID**, not just the device id — simplest path is
-  a lookup at boot (`GET /rest/v1/cows?device_id=eq.<id>&select=id`) cached in
+  a lookup at boot (RPC `lookup_cow_id`, SECURITY DEFINER — survives the
+per-owner cows SELECT RLS) cached in
   NVS, so the herd list is the single source of truth for the mapping.
 - Retry on 5xx with backoff; on 4xx, log and drop the reading (it will never
   be accepted).
@@ -119,3 +120,25 @@ of devices on each.
   independent — but if you later add per-axis behavior classification
   (grazing vs walking vs rumination), that requires a per-enclosure
   calibration pass first.
+
+## Battery level (from the decow-app design drop)
+
+Collars include `battery_level` (0–100, percent) in each reading. The firmware
+reads a voltage divider (100k/100k from the Li-ion cell into GPIO 34) via
+`analogReadMilliVolts`, oversamples 8x, and maps 3.3–4.2 V to 0–100%. The app
+shows a battery indicator on each cow card once a value has been reported.
+
+## Hardened ingest (ingest-reading function)
+
+The open anon INSERT on `readings` was revoked. Collars now POST to
+`/functions/v1/ingest-reading` with:
+
+- header `x-collar-key: <COLLAR_INGEST_KEY>` — shared device secret
+  (`supabase secrets set COLLAR_INGEST_KEY=...`; value kept in
+  `android/local.properties` as `collar.ingest_key`)
+- body `{ device_id, temperature, accel:{x,y,z}, gyro:{x,y,z}, battery_level }`
+  — the server resolves `device_id -> cow`, stamps the timestamp, and a
+  per-device token bucket (burst 5, 1 per 600 s refill) absorbs floods.
+
+Response is 200 `{ok:true}` (then the usual webhook pipeline runs) or
+401/404/429 with a plain-text reason.

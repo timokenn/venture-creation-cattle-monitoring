@@ -32,6 +32,7 @@ interface ReadingRow {
   id: string;
   cow_id: string;
   timestamp: string | null;
+  battery_level?: number | null;
   temperature: number;
   accel_x: number;
   accel_y: number;
@@ -144,14 +145,14 @@ Deno.serve(async (req) => {
       p_alpha_temp: BASELINE_TEMP_EMA_ALPHA,
       p_alpha_activity: BASELINE_ACTIVITY_EMA_ALPHA,
       p_min_samples: BASELINE_MIN_SAMPLES,
-      p_creates: JSON.stringify(
-        decision.ops
-          .filter((o) => o.op === "create")
-          .map((o) => ({ type: o.type, note: o.note, timestamp: o.timestamp.toISOString() })),
-      ),
-      p_resolves: JSON.stringify(
-        decision.ops.filter((o) => o.op === "resolve").map((o) => o.id),
-      ),
+      // NOTE: pass real arrays, not JSON.stringify'd strings — the RPC params
+      // are jsonb, and a stringified payload arrives as a jsonb *scalar*,
+      // which jsonb_array_elements rejects ("cannot extract elements from a
+      // scalar"). supabase-js serializes JS arrays to proper jsonb arrays.
+      p_creates: decision.ops
+        .filter((o) => o.op === "create")
+        .map((o) => ({ type: o.type, note: o.note, timestamp: o.timestamp.toISOString() })),
+      p_resolves: decision.ops.filter((o) => o.op === "resolve").map((o) => o.id),
     });
     if (rpcError) throw rpcError;
 

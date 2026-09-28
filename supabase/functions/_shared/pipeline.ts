@@ -75,7 +75,12 @@ export function decide(
   opts: { now: Date },
 ): Decision {
   const activityIndex = computeActivityIndex(sample.accel, sample.gyro);
-  const valid =
+  // Plausibility band for a cow's surface temperature. Out-of-band readings
+  // are SENSOR-SUSPICIOUS, not discarded: they are stored with valid=true and
+  // a temp_out_of_range quality flag so the app can show them annotated — but
+  // they are still barred from classification, alerts, and the temp baseline
+  // (plausibleGate), so implausible data can never contaminate health logic.
+  const plausibleTemp =
     sample.temperature >= TEMP_VALID_MIN_C &&
     sample.temperature <= TEMP_VALID_MAX_C;
 
@@ -85,8 +90,8 @@ export function decide(
     accel: sample.accel,
     gyro: sample.gyro,
     activity_index: activityIndex,
-    data_quality: "ok",
-    valid,
+    data_quality: plausibleTemp ? "ok" : "temp_out_of_range",
+    valid: true,
   };
 
   const recent = [...recentValid].sort(
@@ -95,8 +100,11 @@ export function decide(
   const stale = isActivityStale(reading, recent);
   if (stale) reading.data_quality = "activity_stale";
 
+  // Classification/baselines/alerts only run on physiologically plausible
+  // readings, regardless of the stored valid flag.
+  const plausibleGate = plausibleTemp;
   const ready =
-    valid &&
+    plausibleGate &&
     baselineReady(cow.baseline_samples) &&
     cow.baseline_temp !== null &&
     cow.baseline_activity !== null;
@@ -104,7 +112,7 @@ export function decide(
   const activityRatio = ready ? activityIndex / cow.baseline_activity! : 1;
 
   let classification: Classification | "invalid" = "normal";
-  if (!valid) {
+  if (!plausibleGate) {
     classification = "invalid";
   } else if (ready) {
     const window = [...recent, reading];
@@ -167,9 +175,10 @@ export function decide(
           .map((t) => STATUS_FOR_ALERT[t])
           .reduce((worst, s) => (SEVERITY[s] > SEVERITY[worst] ? s : worst));
 
-  // Invalid readings never update the temp baseline; stale readings never
+  // Implausible readings never update the temp baseline or sample count
+  // (same protection the old valid=false path had); stale readings never
   // update the activity baseline (a frozen sensor must not drag it down).
-  const baseline_temp = valid
+  const baseline_temp = plausibleTemp
     ? nextBaseline(
         cow.baseline_temp,
         cow.baseline_samples,
@@ -192,7 +201,7 @@ export function decide(
     reading,
     baseline_temp,
     baseline_activity,
-    baseline_samples: cow.baseline_samples + (valid ? 1 : 0),
+    baseline_samples: cow.baseline_samples + (plausibleTemp ? 1 : 0),
     classification,
     activeTypes,
     statusAfter,

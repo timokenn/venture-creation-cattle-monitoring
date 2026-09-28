@@ -6,6 +6,28 @@
 -- ============================================================================
 
 -- ---------------------------------------------------------------- tables ----
+-- cows.owner_id references auth.users (Supabase Auth). Vanilla Postgres (the
+-- PGlite test harness) has no auth schema, so create a minimal stand-in — on
+-- hosted Supabase both statements are no-ops (the real one already exists).
+create schema if not exists auth;
+create table if not exists auth.users (id uuid primary key);
+
+-- auth.uid() stub for vanilla Postgres: mirrors Supabase's implementation
+-- (reads the JWT sub claim GUC). Guarded — on hosted Supabase the real
+-- function already exists and this block is a no-op.
+do $$
+begin
+  if not exists (
+    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'auth' and p.proname = 'uid'
+  ) then
+    execute $fn$
+      create function auth.uid() returns uuid language sql stable as
+      'select nullif(current_setting(''request.jwt.claim.sub'', true), '''')::uuid'
+    $fn$;
+  end if;
+end $$;
+
 create table if not exists public.cows (
   id                uuid primary key default gen_random_uuid(),
   name              text not null,
@@ -17,8 +39,42 @@ create table if not exists public.cows (
                     check (current_status in ('normal','warning','alert','offline')),
   last_seen         timestamptz,
   latest_temp       numeric,
-  latest_activity   numeric
+  battery_level     numeric, -- 0-100, latest known collar battery %; null until firmware reports it
+  latest_activity   numeric,
+  -- Owning auth.users account (multi-tenant: a user sees only their cows).
+  -- Fresh installs: keep in sync with supabase/migrations/.
+  owner_id          uuid references auth.users(id) on delete cascade,
+  -- Nominal seconds between collar readings; the app derives instant
+  -- OFFLINE locally as last_seen older than 3x this (matches the cron).
+  send_interval_seconds integer not null default 20,
+  -- Profile photo: public Storage URL in the 'cow-photos' bucket.
+  image_url text
 );
+
+-- Cow photos: public read (avatars render without signed URLs), uploads by
+-- authenticated users only. Keep in sync with migrations/20260928170000.
+insert into storage.buckets (id, name, public)
+values ('cow-photos', 'cow-photos', true)
+on conflict (id) do nothing;
+
+drop policy if exists "cow_photos_read" on storage.objects;
+create policy "cow_photos_read" on storage.objects for select
+  to anon, authenticated using (bucket_id = 'cow-photos');
+
+drop policy if exists "cow_photos_upload" on storage.objects;
+create policy "cow_photos_upload" on storage.objects for insert
+  to authenticated
+  with check (bucket_id = 'cow-photos');
+
+drop policy if exists "cow_photos_update" on storage.objects;
+create policy "cow_photos_update" on storage.objects for update
+  to authenticated
+  using (bucket_id = 'cow-photos') with check (bucket_id = 'cow-photos');
+
+drop policy if exists "cow_photos_delete" on storage.objects;
+create policy "cow_photos_delete" on storage.objects for delete
+  to authenticated
+  using (bucket_id = 'cow-photos');
 
 create table if not exists public.readings (
   id              uuid primary key default gen_random_uuid(),
@@ -32,6 +88,7 @@ create table if not exists public.readings (
   gyro_y          double precision not null,
   gyro_z          double precision not null,
   activity_index  double precision check (activity_index >= 0),
+  battery_level   numeric check (battery_level is null or battery_level between 0 and 100),
   valid           boolean,
   data_quality    text,
   -- Idempotency guard for Database Webhook retries: set by the RPC below.
@@ -54,6 +111,7 @@ create table if not exists public.fcm_tokens (
   updated_at  timestamptz not null default now()
 );
 
+create index if not exists cows_owner_idx on public.cows (owner_id);
 create index if not exists readings_cow_ts_idx on public.readings (cow_id, timestamp desc);
 create index if not exists alerts_cow_resolved_ts_idx on public.alerts (cow_id, resolved, timestamp desc);
 
@@ -79,21 +137,54 @@ alter table public.readings   enable row level security;
 alter table public.alerts     enable row level security;
 alter table public.fcm_tokens enable row level security;
 
+-- Per-user cows: SELECT/INSERT locked to the row owner (cows.owner_id);
+-- readings/alerts inherit visibility through the cow. Fresh installs: keep
+-- in sync with supabase/migrations/20260928100000_per_user_cows.sql.
 drop policy if exists "cows_select" on public.cows;
 create policy "cows_select" on public.cows for select
-  to anon, authenticated using (true);
+  to authenticated
+  using (owner_id = auth.uid());
+
+drop policy if exists "cows_insert" on public.cows;
+create policy "cows_insert" on public.cows for insert
+  to authenticated
+  with check (owner_id = auth.uid());
+
+-- Device boot lookup (collar firmware): SECURITY DEFINER so the collar can
+-- resolve device_id -> cow UUID with the publishable key despite per-owner
+-- SELECT RLS. Lookup-only: takes a device id, returns just the UUID.
+create or replace function public.lookup_cow_id(p_device_id text)
+returns uuid
+language sql
+security definer
+set search_path = public
+as $$
+  select id from public.cows where device_id = p_device_id limit 1;
+$$;
+
+revoke all on function public.lookup_cow_id(text) from public;
+grant execute on function public.lookup_cow_id(text) to anon, authenticated;
 
 drop policy if exists "readings_select" on public.readings;
 create policy "readings_select" on public.readings for select
-  to anon, authenticated using (true);
+  to authenticated
+  using (exists (
+    select 1 from public.cows c
+    where c.id = readings.cow_id and c.owner_id = auth.uid()
+  ));
 
-drop policy if exists "readings_insert" on public.readings;
-create policy "readings_insert" on public.readings for insert
-  to anon, authenticated with check (true);
+-- NOTE (hardened): the old open anon INSERT on readings is gone. Devices
+-- ingest through the ingest-reading Edge Function (x-collar-key header +
+-- per-device rate limit, service role inside) — see supabase/functions/
+-- ingest-reading and migration 20260928150000. Keep in sync with migrations/.
 
 drop policy if exists "alerts_select" on public.alerts;
 create policy "alerts_select" on public.alerts for select
-  to anon, authenticated using (true);
+  to authenticated
+  using (exists (
+    select 1 from public.cows c
+    where c.id = alerts.cow_id and c.owner_id = auth.uid()
+  ));
 
 drop policy if exists "fcm_tokens_insert" on public.fcm_tokens;
 create policy "fcm_tokens_insert" on public.fcm_tokens for insert
@@ -136,6 +227,12 @@ exception when duplicate_object then null; end $$;
 -- status/baselines and alert rows. One transaction per reading; safe against
 -- concurrent duplicate deliveries (see the CAS guard below) and against
 -- concurrent readings for the same cow (single UPDATE serializes per row).
+-- DROP first: if the signature ever grows (it did: p_battery_level), a
+-- bare CREATE OR REPLACE would leave two overloads and PostgREST would
+-- then fail calls with "Could not choose the best candidate function".
+drop function if exists public.apply_reading_decision(uuid, uuid, timestamptz, double precision, double precision, boolean, text, text, double precision, double precision, integer, jsonb, jsonb);
+drop function if exists public.apply_reading_decision(uuid, uuid, timestamptz, double precision, double precision, boolean, text, text, double precision, double precision, integer, jsonb, jsonb, double precision);
+
 create or replace function public.apply_reading_decision(
   p_reading_id        uuid,
   p_cow_id            uuid,
@@ -149,7 +246,8 @@ create or replace function public.apply_reading_decision(
   p_alpha_activity    double precision,
   p_min_samples       integer,
   p_creates           jsonb,   -- [{type, note, timestamp}]
-  p_resolves          jsonb    -- [alert_id, ...]
+  p_resolves          jsonb,   -- [alert_id, ...]
+  p_battery_level     double precision default null -- 0-100, optional until firmware reports it
 ) returns void
 language plpgsql
 as $$
@@ -184,7 +282,10 @@ begin
   -- Baseline advance, in-SQL (single UPDATE = no lost-update race), mirroring
   -- nextBaseline() in _shared/baseline.ts. The vitest agreement test proves
   -- both formulas stay identical — change one, change both, or break the test.
-  if p_valid then
+  -- Sensor-suspicious readings (temp_out_of_range) carry valid=true so the app
+  -- can display them flagged, but they still must not teach the baselines —
+  -- the gate is the quality flag, not p_valid.
+  if p_data_quality is distinct from 'temp_out_of_range' then
     if v_bt is null or v_samples <= 0 then
       v_bt := p_temperature;
     elsif v_samples < p_min_samples then
@@ -204,7 +305,7 @@ begin
     end if;
   end if;
 
-  if p_valid then
+  if p_data_quality is distinct from 'temp_out_of_range' then
     v_samples := v_samples + 1;
   end if;
 
@@ -214,8 +315,9 @@ begin
     baseline_samples  = v_samples,
     current_status    = p_status_after,
     last_seen         = p_reading_ts,
-    latest_temp       = case when p_valid then p_temperature else latest_temp end,
-    latest_activity   = p_activity_index
+    latest_temp       = p_temperature,
+    latest_activity   = p_activity_index,
+    battery_level     = coalesce(p_battery_level, battery_level)
   where id = p_cow_id;
 
   -- Alert creates with dedup, resolves — mirroring planAlertOps().
@@ -282,7 +384,7 @@ $$;
 -- (PGlite tests) — guard so schema.sql runs in both.
 do $$
 begin
-  grant execute on function public.apply_reading_decision(uuid, uuid, timestamptz, double precision, double precision, boolean, text, text, double precision, double precision, integer, jsonb, jsonb) to service_role;
+  grant execute on function public.apply_reading_decision(uuid, uuid, timestamptz, double precision, double precision, boolean, text, text, double precision, double precision, integer, jsonb, jsonb, double precision) to service_role;
   grant execute on function public.apply_offline_transition(uuid, boolean, timestamptz) to service_role;
 exception when undefined_object then null; end $$;
 

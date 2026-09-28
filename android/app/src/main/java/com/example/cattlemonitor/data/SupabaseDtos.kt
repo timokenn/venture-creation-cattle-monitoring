@@ -22,6 +22,9 @@ data class CowDto(
     @SerialName("last_seen") val lastSeen: String? = null,
     @SerialName("latest_temp") val latestTemp: Double? = null,
     @SerialName("latest_activity") val latestActivity: Double? = null,
+    @SerialName("battery_level") val batteryLevel: Double? = null,
+    @SerialName("send_interval_seconds") val sendIntervalSeconds: Int? = null,
+    @SerialName("image_url") val imageUrl: String? = null,
 )
 
 @Serializable
@@ -72,6 +75,9 @@ internal fun CowDto.toDomain(): Cow = Cow(
     lastSeen = isoToDate(lastSeen),
     latestTemp = latestTemp,
     latestActivity = latestActivity,
+    batteryLevel = batteryLevel,
+    sendIntervalSeconds = (sendIntervalSeconds ?: 20).toLong(),
+    imageUrl = imageUrl,
 )
 
 internal fun ReadingDto.toDomain(): Reading = Reading(
@@ -80,6 +86,7 @@ internal fun ReadingDto.toDomain(): Reading = Reading(
     temperature = temperature,
     activityIndex = activityIndex,
     dataQuality = dataQuality,
+    suspicious = dataQuality == "temp_out_of_range",
 )
 
 internal fun AlertDto.toDomain(): Alert? {

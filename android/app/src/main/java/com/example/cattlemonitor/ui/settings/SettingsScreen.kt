@@ -14,7 +14,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.cattlemonitor.R
 import com.example.cattlemonitor.data.AlertType
 import com.example.cattlemonitor.settings.NotificationPrefs
 import kotlinx.coroutines.launch
@@ -27,9 +29,9 @@ fun SettingsScreen() {
     val scope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Settings", style = MaterialTheme.typography.headlineSmall)
+        Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Push notifications per alert type",
+            stringResource(R.string.settings_push_subtitle),
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(vertical = 8.dp),
         )

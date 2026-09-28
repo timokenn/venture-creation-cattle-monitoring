@@ -24,8 +24,14 @@ Deno.serve(async (req) => {
     }
     const result = await sendPush(
       {
-        notification: { title: "Cattle Monitor", body: "FCM smoke test" },
-        data: { cowId: "test", type: "sensor_issue" },
+        // Data-only (matches alertPushPayload): the app's service builds the
+        // notification, so tapping it deep-links into the app.
+        data: {
+          cowId: "test",
+          type: "sensor_issue",
+          title: "DeCow",
+          body: "FCM smoke test",
+        },
       },
       tokens,
       async (token) => {

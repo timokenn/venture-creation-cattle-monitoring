@@ -35,6 +35,9 @@ android/app/release/
 *.jks
 *.keystore
 
+# Firmware local secrets (WiFi password, Firebase API key)
+firmware/**/secrets.h
+
 # Editors / OS / local tooling
 .idea/
 .vscode/

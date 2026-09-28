@@ -72,8 +72,18 @@ export function alertPushPayload(
     device_offline: `Device offline: ${cowName}`,
     sensor_issue: `Sensor issue: ${cowName}`,
   };
+  // DATA-ONLY message: everything travels in `data`. A notification payload
+  // here would let the OS render the tray entry itself, but then a tap while
+  // the app is closed just cold-launches the launcher with no extras — the
+  // deep link into the cow's detail screen never fires. With data-only, the
+  // FCM SDK wakes our FirebaseMessagingService in ALL cases, we post the
+  // notification ourselves with a contentIntent, and taps always route.
   return {
-    notification: { title: titles[alert.type] ?? cowName, body: alert.note },
-    data: { cowId, type: alert.type },
+    data: {
+      cowId,
+      type: alert.type,
+      title: titles[alert.type] ?? cowName,
+      body: alert.note,
+    },
   };
 }

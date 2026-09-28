@@ -1,4 +1,171 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Cattle Monitor</string>
+    <!-- Brand name — intentionally the same in every locale. -->
+    <string name="app_name">DeCow</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_herd">Herd</string>
+    <string name="nav_alerts">Alerts</string>
+    <string name="nav_devices">Devices</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Login / auth -->
+    <string name="login_welcome_back">Welcome back</string>
+    <string name="login_create_account">Create an account</string>
+    <string name="login_tagline">Sign in to keep an eye on your herd.</string>
+    <string name="field_email">Email</string>
+    <string name="field_password">Password</string>
+    <string name="login_button">Log in</string>
+    <string name="signup_button">Sign up</string>
+    <string name="login_switch_to_signup">New here? Create an account</string>
+    <string name="signup_switch_to_login">Already have an account? Log in</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="login_locked_button">Locked — wait %1$ds</string>
+    <string name="login_locked_message">Too many failed attempts. For security, wait %1$d seconds before trying again, or reset your password below.</string>
+    <string name="login_attempts_hint">%1$d of %2$d failed attempts — you can reset your password below.</string>
+    <string name="reset_password_title">Reset password</string>
+    <string name="reset_password_body">Enter your email and we\'ll send you a link to set a new password.</string>
+    <string name="reset_password_send">Send reset link</string>
+    <string name="reset_password_sent">Reset email sent — check your inbox (and spam folder).</string>
+    <string name="cancel">Cancel</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_invalid_credentials">Email or password is incorrect.</string>
+    <string name="error_email_not_confirmed">This email hasn\'t been confirmed yet. Check your inbox for the confirmation link.</string>
+    <string name="error_rate_limited">Too many requests — please wait a moment and try again.</string>
+    <string name="error_email_in_use">That email is already registered. Try logging in instead.</string>
+    <string name="error_weak_password">Password is too weak — use at least 6 characters.</string>
+    <string name="error_invalid_email">That doesn\'t look like a valid email address.</string>
+    <string name="error_network">Can\'t reach the server. Check your internet connection.</string>
+
+    <!-- Ear-tag status badges -->
+    <string name="status_ok">OK</string>
+    <string name="status_watch">WATCH</string>
+    <string name="status_alert">ALERT</string>
+    <string name="status_offline">OFFLINE</string>
+
+    <!-- Status explanations (cow detail) -->
+    <string name="status_normal_explain">All readings normal — temperature and activity near this cow\'s baseline.</string>
+    <string name="status_warning_explain">Worth watching: readings have moved away from this cow\'s baseline.</string>
+    <string name="status_alert_explain">Possible health issue detected — temperature or movement is well outside baseline.</string>
+    <string name="status_offline_no_data">No data received yet from this device.</string>
+    <string name="status_offline_no_readings">No readings for a while — device may be powered off or out of range.</string>
+    <string name="last_reading_ago">Last reading %1$s.</string>
+
+    <!-- Relative time -->
+    <string name="time_never">never</string>
+    <string name="time_just_now">just now</string>
+    <string name="time_minutes_ago">%1$dm ago</string>
+    <string name="time_hours_ago">%1$dh ago</string>
+    <string name="time_days_ago">%1$dd ago</string>
+
+    <!-- Overview layout switcher -->
+    <string name="layout_grid">Grid</string>
+    <string name="layout_stack">Stack</string>
+
+    <!-- Offline state -->
+    <string name="offline_title">You\'re offline</string>
+    <string name="offline_body">DeCow can\'t reach the server right now. Your cows and alerts will reappear automatically once you\'re back online.</string>
+    <string name="offline_reconnect_hint">Check your Wi-Fi or mobile data — this screen updates by itself.</string>
+    <string name="offline_banner">Offline — showing last known data</string>
+
+    <!-- Overview -->
+    <string name="overview_title">Herd</string>
+    <plurals name="overview_cow_count">
+        <item quantity="one">%1$d cow</item>
+        <item quantity="other">%1$d cows</item>
+    </plurals>
+    <string name="overview_updated_now">updated moments ago</string>
+    <string name="overview_loading">Loading herd…</string>
+    <string name="overview_empty">No cows added yet.\nUse Devices → add a cow and its ESP32 device id.</string>
+    <string name="overview_updated_relative">updated %1$s</string>
+    <string name="overview_no_data_yet">no data received yet</string>
+    <string name="status_label_normal">Normal</string>
+    <string name="status_label_watch">Watch</string>
+    <string name="status_label_alert">Alert</string>
+    <string name="status_label_offline">Offline</string>
+
+    <!-- Alerts -->
+    <string name="alerts_title">Alerts</string>
+    <string name="alerts_filter_all">All</string>
+    <string name="alerts_filter_open">Unresolved</string>
+    <string name="alerts_filter_done">Resolved</string>
+    <string name="alerts_loading">Loading alerts…</string>
+    <string name="alerts_empty">No %1$s alerts.</string>
+    <string name="alerts_resolved_suffix">· resolved</string>
+
+    <!-- Alert type names -->
+    <string name="alert_type_fever">fever</string>
+    <string name="alert_type_low_activity">low activity</string>
+    <string name="alert_type_possible_estrus">possible estrus</string>
+    <string name="alert_type_possible_distress">possible distress</string>
+    <string name="alert_type_device_offline">device offline</string>
+    <string name="alert_type_sensor_issue">sensor issue</string>
+
+    <!-- Devices -->
+    <string name="devices_title">Devices</string>
+    <string name="devices_registered_count">%1$d registered</string>
+    <string name="devices_cow_name">Cow name</string>
+    <string name="devices_device_id">Device ID (ESP32)</string>
+    <string name="devices_add">Add cow</string>
+    <string name="devices_scan_qr">Scan QR</string>
+    <string name="devices_photo_saved">Photo saved.</string>
+    <string name="devices_rename">Rename</string>
+    <string name="devices_rename_title">Rename cow</string>
+    <string name="devices_renamed">Renamed.</string>
+    <string name="devices_photo_hint">Tap a photo to add or change it</string>
+    <string name="devices_added">Cow added.</string>
+    <string name="devices_error_prefix">Error: %1$s</string>
+    <string name="devices_conflict">That device ID is already registered to another cow.</string>
+    <string name="devices_registered_header">REGISTERED DEVICES</string>
+    <string name="devices_empty">No cows registered yet.</string>
+    <string name="devices_remove">Remove</string>
+    <string name="devices_deleted">Deleted.</string>
+
+    <!-- Estrus breeding window (#7) -->
+    <string name="estrus_window_title">Possible estrus — %1$s</string>
+    <string name="estrus_window_open">Optimal breeding window: ~%1$d h remaining. Schedule AI now.</string>
+    <string name="estrus_window_upcoming">Window opens in ~%1$d h (12–18 h after onset is optimal).</string>
+    <string name="estrus_window_closed">The 12–18 h breeding window has passed.</string>
+
+    <!-- Cow detail -->
+    <string name="detail_back">← Herd</string>
+    <string name="detail_range_24h">24h</string>
+    <string name="detail_range_7d">7d</string>
+    <string name="detail_temp_section">Temperature (°C)</string>
+    <string name="detail_activity_section">Activity Index (0–100, relative to %1$s)</string>
+    <string name="detail_this_cow">this cow</string>
+    <string name="detail_alert_history">Alert history</string>
+    <string name="detail_no_alerts">No alerts recorded for this cow.</string>
+    <string name="detail_suspicious_caption">◦ %1$d circled point(s): temperature outside a cow\'s plausible range — shown for transparency, ignored by baselines and health classification.</string>
+    <string-array name="axis_h24">
+        <item>-24h</item>
+        <item>-18h</item>
+        <item>-12h</item>
+        <item>-6h</item>
+        <item>Now</item>
+    </string-array>
+    <string-array name="axis_d7">
+        <item>-7d</item>
+        <item>-5d</item>
+        <item>-3d</item>
+        <item>-1d</item>
+        <item>Now</item>
+    </string-array>
+
+    <!-- CSV export (#5) -->
+    <string name="export_share_title">Share DeCow data</string>
+    <string name="detail_export">Export CSV</string>
+
+    <!-- Settings / profile / language -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_push_subtitle">Push notifications per alert type</string>
+    <string name="profile_title">Profile</string>
+    <string name="profile_signed_in">Signed in</string>
+    <string name="profile_logout">Log out</string>
+    <string name="language_title">Language</string>
+    <string name="language_saved_pre13">Saved. On this Android version, reopen the app for it to fully apply.</string>
+    <string name="language_system">System default</string>
+    <string name="language_english">English</string>
+    <string name="language_indonesian">Bahasa Indonesia</string>
+    <string name="settings_brand_tagline">Health you can see coming.</string>
 </resources>
