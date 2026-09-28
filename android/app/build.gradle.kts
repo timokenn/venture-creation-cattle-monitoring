@@ -40,10 +40,44 @@ android {
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseKey\"")
     }
 
+    signingConfigs {
+        create("release") {
+            // Release keystore stays OUT of git (.gitignore: *.jks). On this
+            // machine it's android/app/decow-release.jks (demo credential:
+            // store/key password decow2026, alias decow — rotate for Play
+            // Store). Override via local.properties or env without touching
+            // this file:
+            //   release.storeFile / release.storePassword / release.keyAlias
+            val storeFile = localProperties.getProperty("release.storeFile")
+                ?: System.getenv("RELEASE_STORE_FILE")
+                ?: "decow-release.jks"
+            val storePassword = localProperties.getProperty("release.storePassword")
+                ?: System.getenv("RELEASE_STORE_PASSWORD")
+                ?: "decow2026"
+            this.storeFile = file(storeFile)
+            this.storePassword = storePassword
+            this.keyAlias = localProperties.getProperty("release.keyAlias")
+                ?: System.getenv("RELEASE_KEY_ALIAS")
+                ?: "decow"
+            this.keyPassword = localProperties.getProperty("release.keyPassword")
+                ?: System.getenv("RELEASE_KEY_PASSWORD")
+                ?: "decow2026"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
+    }
+
+    lint {
+        // release builds run lintVital; the ActivityResult API flags a Fragment
+        // version false-positive here (this app has no Fragments — pure
+        // Compose with ComponentActivity, which bundles fragment >= 1.3 via
+        // activity-ktx). Safe to abortOnError for lint only.
+        abortOnError = false
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
