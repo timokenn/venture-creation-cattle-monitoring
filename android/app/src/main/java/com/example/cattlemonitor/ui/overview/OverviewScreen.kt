@@ -43,6 +43,7 @@ import com.example.cattlemonitor.R
 import com.example.cattlemonitor.ServiceLocator
 import com.example.cattlemonitor.data.Cow
 import com.example.cattlemonitor.data.CowStatus
+import com.example.cattlemonitor.ui.common.CowAvatar
 import com.example.cattlemonitor.ui.common.EmptyState
 import com.example.cattlemonitor.ui.common.OfflineBanner
 import com.example.cattlemonitor.ui.common.OfflineScreen
@@ -117,7 +118,7 @@ fun OverviewScreen(
                     modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
                 ) {
                     lazyItems(cows!!, key = { it.id }) { cow ->
-                        CowCard(cow) { onOpenCow(cow.id) }
+                        CowCard(cow, stack = true) { onOpenCow(cow.id) }
                     }
                 }
                 else -> LazyVerticalGrid(
@@ -127,7 +128,7 @@ fun OverviewScreen(
                     modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
                 ) {
                     items(cows!!, key = { it.id }) { cow ->
-                        CowCard(cow) { onOpenCow(cow.id) }
+                        CowCard(cow, stack = false) { onOpenCow(cow.id) }
                     }
                 }
             }
@@ -197,41 +198,80 @@ private fun statusLabelPlain(status: CowStatus) = stringResource(
     },
 )
 
+/**
+ * Cow card in two genuinely different layouts: GRID = compact square-ish tile
+ * (avatar beside the name); STACK = full-width list row with a large photo on
+ * the left and the details to the right. Both show the cow's profile photo
+ * when she has one.
+ */
 @Composable
-private fun CowCard(cow: Cow, onClick: () -> Unit) {
+private fun CowCard(cow: Cow, stack: Boolean, onClick: () -> Unit) {
     val now = remember { Date() }
     val status = cow.effectiveStatus(now) // instant OFFLINE within ~1 min of silence
-    Column(
-        modifier = Modifier
-            .background(Surface, RoundedCornerShape(10.dp))
-            .border(1.dp, Line, RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
-            .padding(12.dp),
-    ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(cow.name, style = MaterialTheme.typography.titleMedium)
-            StatusBadge(status)
+    val card = Modifier
+        .background(Surface, RoundedCornerShape(10.dp))
+        .border(1.dp, Line, RoundedCornerShape(10.dp))
+        .clickable(onClick = onClick)
+
+    if (stack) {
+        Row(
+            modifier = card.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            CowAvatar(cow = cow, size = 56.dp)
+            Column(modifier = Modifier.weight(1f)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(cow.name, style = MaterialTheme.typography.titleMedium)
+                    StatusBadge(status)
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        cow.latestTemp?.let { "${String.format("%.1f", it)}°C" } ?: "—",
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    cow.batteryLevel?.let { BatteryIndicator(it) }
+                }
+                LastSeenText(cow)
+            }
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        cow.latestTemp?.let {
+    } else {
+        Column(modifier = card.padding(12.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                CowAvatar(cow = cow, size = 30.dp)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    cow.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                StatusBadge(status)
+            }
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "${String.format("%.1f", it)}°C",
+                cow.latestTemp?.let { "${String.format("%.1f", it)}°C" } ?: "—",
                 style = MaterialTheme.typography.headlineSmall,
             )
-        } ?: Text("—", style = MaterialTheme.typography.headlineSmall)
-        cow.batteryLevel?.let { BatteryIndicator(it) }
-        cow.lastSeen?.let {
-            Text(
-                stringResource(R.string.overview_updated_relative, relativeTime(it)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } ?: Text(
-            stringResource(R.string.overview_no_data_yet),
+            cow.batteryLevel?.let { BatteryIndicator(it) }
+            LastSeenText(cow)
+        }
+    }
+}
+
+@Composable
+private fun LastSeenText(cow: Cow) {
+    cow.lastSeen?.let {
+        Text(
+            stringResource(R.string.overview_updated_relative, relativeTime(it)),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-    }
+    } ?: Text(
+        stringResource(R.string.overview_no_data_yet),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 /** Small battery bar + percent, shown only when the collar reports battery. */
