@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -56,23 +57,23 @@ fun LoginScreen(onLoggedIn: () -> Unit, vm: LoginViewModel = viewModel()) {
             .padding(horizontal = 28.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Image(
-                painter = painterResource(R.drawable.decow_logo),
-                contentDescription = "DeCow",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(110.dp),
-            )
-            // Language switch must be reachable BEFORE signing in — someone
-            // facing an Indonesian-only phone shouldn't need to guess at
-            // English UI to find the settings.
-            LanguagePickerButton(modifier = Modifier.align(Alignment.TopEnd))
+        // Language switch must be reachable BEFORE signing in — someone facing
+        // an Indonesian-only phone shouldn't need to guess at English UI to
+        // find the settings. Own row, top-right, clear of the logo.
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            LanguagePickerButton()
         }
+        Image(
+            painter = painterResource(R.drawable.decow_logo),
+            contentDescription = "DeCow",
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(110.dp),
+        )
         Spacer(Modifier.height(28.dp))
         Text(
             stringResource(
-                if (mode == AuthMode.SIGN_IN) R.string.login_welcome_back else R.string.login_create_account,
+                if (mode == AuthMode.SIGN_IN) R.string.login_welcome else R.string.login_create_account,
             ),
             style = MaterialTheme.typography.headlineSmall,
         )

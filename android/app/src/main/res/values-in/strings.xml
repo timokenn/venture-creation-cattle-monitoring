@@ -9,7 +9,7 @@
     <string name="nav_settings">Pengaturan</string>
 
     <!-- Login / autentikasi -->
-    <string name="login_welcome_back">Selamat datang kembali</string>
+    <string name="login_welcome">Selamat datang</string>
     <string name="login_create_account">Buat akun</string>
     <string name="login_tagline">Masuk untuk memantau kawanan sapi Anda.</string>
     <string name="field_email">Email</string>

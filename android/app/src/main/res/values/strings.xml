@@ -10,7 +10,7 @@
     <string name="nav_settings">Settings</string>
 
     <!-- Login / auth -->
-    <string name="login_welcome_back">Welcome back</string>
+    <string name="login_welcome">Welcome</string>
     <string name="login_create_account">Create an account</string>
     <string name="login_tagline">Sign in to keep an eye on your herd.</string>
     <string name="field_email">Email</string>

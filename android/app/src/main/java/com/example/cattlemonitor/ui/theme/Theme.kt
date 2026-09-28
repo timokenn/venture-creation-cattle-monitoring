@@ -1,6 +1,5 @@
 package com.example.cattlemonitor.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -46,7 +45,11 @@ private val CattleDarkColorScheme = darkColorScheme(
 
 @Composable
 fun CattleMonitorTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    // Pinned to the brand LIGHT theme on purpose (design decision): the
+    // parchment palette is the product's identity, and the dark variant
+    // hasn't been through design review. Flip to isSystemInDarkTheme() to
+    // re-enable system-following dark mode.
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
