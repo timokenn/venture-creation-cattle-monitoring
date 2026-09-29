@@ -241,9 +241,37 @@ class CattleRepository(
         if (code !in 200..299) throw SupabaseFunctionException(code, body)
     }
 
-    /** Raw wire rows for CSV export (#5): exact timestamps + quality flags. */
+    /** Raw wire rows for CSV export (#5): exact timestamps + every sensor column. */
     @Serializable
-    data class ExportRow(val timestamp: String, val temperature: Double, val activity: Double?, val quality: String?)
+    data class ExportRow(
+        val timestamp: String,
+        val temperature: Double,
+        val activity: Double?,
+        val quality: String?,
+        @SerialName("battery_level") val battery: Double? = null,
+        @SerialName("accel_x") val accelX: Double? = null,
+        @SerialName("accel_y") val accelY: Double? = null,
+        @SerialName("accel_z") val accelZ: Double? = null,
+        @SerialName("gyro_x") val gyroX: Double? = null,
+        @SerialName("gyro_y") val gyroY: Double? = null,
+        @SerialName("gyro_z") val gyroZ: Double? = null,
+    )
+
+    /** Full row shape for the export fetch (ReadingDto lacks the sensor columns). */
+    @Serializable
+    internal data class ExportReadingDto(
+        val timestamp: String,
+        val temperature: Double,
+        @SerialName("activity_index") val activityIndex: Double? = null,
+        @SerialName("data_quality") val dataQuality: String? = null,
+        @SerialName("battery_level") val batteryLevel: Double? = null,
+        @SerialName("accel_x") val accelX: Double? = null,
+        @SerialName("accel_y") val accelY: Double? = null,
+        @SerialName("accel_z") val accelZ: Double? = null,
+        @SerialName("gyro_x") val gyroX: Double? = null,
+        @SerialName("gyro_y") val gyroY: Double? = null,
+        @SerialName("gyro_z") val gyroZ: Double? = null,
+    )
 
     @Serializable
     internal data class BucketDto(
@@ -270,8 +298,22 @@ class CattleRepository(
                 order("timestamp", order = Order.ASCENDING)
                 limit(20_000)
             }
-            .decodeList<ReadingDto>()
-            .map { ExportRow(it.timestamp, it.temperature, it.activityIndex, it.dataQuality) }
+            .decodeList<ExportReadingDto>()
+            .map {
+                ExportRow(
+                    timestamp = it.timestamp,
+                    temperature = it.temperature,
+                    activity = it.activityIndex,
+                    quality = it.dataQuality,
+                    battery = it.batteryLevel,
+                    accelX = it.accelX,
+                    accelY = it.accelY,
+                    accelZ = it.accelZ,
+                    gyroX = it.gyroX,
+                    gyroY = it.gyroY,
+                    gyroZ = it.gyroZ,
+                )
+            }
 
     /**
      * Downsampled buckets for the 7d view (#10) — server-side time-bucket

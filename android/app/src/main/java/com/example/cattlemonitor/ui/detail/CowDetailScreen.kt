@@ -21,6 +21,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,7 @@ import com.example.cattlemonitor.ServiceLocator
 import com.example.cattlemonitor.data.Alert
 import com.example.cattlemonitor.data.Cow
 import com.example.cattlemonitor.data.Reading
+import com.example.cattlemonitor.data.isoToDate
 import com.example.cattlemonitor.ui.common.LineChart
 import com.example.cattlemonitor.ui.common.OfflineBanner
 import com.example.cattlemonitor.ui.common.OfflineScreen
@@ -52,6 +54,7 @@ import com.example.cattlemonitor.ui.theme.Brand
 import com.example.cattlemonitor.ui.theme.Line
 import com.example.cattlemonitor.ui.theme.Surface
 import com.example.cattlemonitor.util.toActivityIndex
+import kotlinx.coroutines.launch
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
@@ -94,6 +97,7 @@ fun CowDetailScreen(
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
     DetailBody(
         cow = cow,
         readings = readings.orEmpty(),
@@ -105,23 +109,56 @@ fun CowDetailScreen(
         onExport = {
             val currentCow = cow
             if (currentCow != null) {
-                // Export everything we have: all readings + all alerts merged
-                // by time (the detail charts only show the selected window).
-                val lines = (readings.orEmpty().map {
-                    com.example.cattlemonitor.util.ExportLine(
-                        timestamp = it.timestamp,
-                        temperature = it.temperature,
-                        activityIndex = it.activityIndex,
-                        dataQuality = it.dataQuality,
+                // Detailed export: fetch the FULL history from the server in
+                // the background (up to 20k readings, every sensor column)
+                // instead of exporting only the rows already loaded for the
+                // charts. Falls back to the in-memory readings if the fetch
+                // fails (e.g. offline), so export always produces a file.
+                val currentAlerts = alerts.orEmpty()
+                val cachedReadings = readings.orEmpty()
+                scope.launch {
+                    val fetched = runCatching {
+                        ServiceLocator.repository.fetchReadingsForExport(currentCow.id, Date(0))
+                    }.getOrElse { emptyList() }
+                    val readingLines = if (fetched.isNotEmpty()) {
+                        fetched.map { row ->
+                            com.example.cattlemonitor.util.ExportLine(
+                                timestamp = isoToDate(row.timestamp) ?: Date(0),
+                                temperature = row.temperature,
+                                activityIndex = row.activity,
+                                battery = row.battery,
+                                accelX = row.accelX,
+                                accelY = row.accelY,
+                                accelZ = row.accelZ,
+                                gyroX = row.gyroX,
+                                gyroY = row.gyroY,
+                                gyroZ = row.gyroZ,
+                                dataQuality = row.quality,
+                            )
+                        }
+                    } else {
+                        cachedReadings.map {
+                            com.example.cattlemonitor.util.ExportLine(
+                                timestamp = it.timestamp,
+                                temperature = it.temperature,
+                                activityIndex = it.activityIndex,
+                                dataQuality = it.dataQuality,
+                            )
+                        }
+                    }
+                    val alertLines = currentAlerts.map {
+                        com.example.cattlemonitor.util.ExportLine(
+                            timestamp = it.timestamp,
+                            alertType = it.type.name.lowercase(),
+                            alertNote = it.note,
+                        )
+                    }
+                    com.example.cattlemonitor.util.CsvExport.export(
+                        context,
+                        currentCow,
+                        (readingLines + alertLines).sortedBy { it.timestamp },
                     )
-                } + alerts.orEmpty().map {
-                    com.example.cattlemonitor.util.ExportLine(
-                        timestamp = it.timestamp,
-                        alertType = it.type.name.lowercase(),
-                        alertNote = it.note,
-                    )
-                }).sortedBy { it.timestamp }
-                com.example.cattlemonitor.util.CsvExport.export(context, currentCow, lines)
+                }
             }
         },
     )

@@ -51,11 +51,13 @@ object StatusText {
             ExplainCase.OFFLINE_STALE ->
                 "No readings for a while — device may be powered off or out of range."
         }
+        // Newline (not a space): the last-seen line is its own sentence —
+        // gluing it onto "...out of range." read as one run-on sentence.
         val suffix = when (p.lastSeen) {
             LastSeenBucket.NONE -> ""
-            LastSeenBucket.MINUTES -> " Last reading ${p.minutesAgo}m ago."
-            LastSeenBucket.HOURS -> " Last reading ${p.minutesAgo / 60}h ago."
-            LastSeenBucket.DAYS -> " Last reading ${p.minutesAgo / 1440}d ago."
+            LastSeenBucket.MINUTES -> "\nLast reading ${p.minutesAgo}m ago."
+            LastSeenBucket.HOURS -> "\nLast reading ${p.minutesAgo / 60}h ago."
+            LastSeenBucket.DAYS -> "\nLast reading ${p.minutesAgo / 1440}d ago."
         }
         return base + suffix
     }

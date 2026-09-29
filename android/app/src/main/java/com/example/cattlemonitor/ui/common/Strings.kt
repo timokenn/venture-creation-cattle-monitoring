@@ -78,5 +78,7 @@ fun statusExplanation(cow: Cow, now: Date = Date()): String {
         StatusText.LastSeenBucket.DAYS ->
             stringResource(R.string.last_reading_ago, stringResource(R.string.time_days_ago, p.minutesAgo / 1440))
     }
-    return base + suffix
+    // Newline separator: "…out of range.Last reading 5m ago." ran the two
+    // sentences together — the last-seen line starts its own line.
+    return if (suffix.isEmpty()) base else base + "\n" + suffix
 }

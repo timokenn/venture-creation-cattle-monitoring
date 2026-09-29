@@ -48,4 +48,16 @@ class StatusTextTest {
         )
         assertTrue(text.contains("out of range"))
     }
+
+    @Test
+    fun `last-reading line starts on its own line`() {
+        val text = StatusText.explain(
+            cow(CowStatus.OFFLINE, lastSeen = Date(now.time - 3_600_000)),
+            now,
+        )
+        // Regression: "…out of range.Last reading 1h ago." ran the two
+        // sentences together — the suffix must start a new line.
+        assertTrue(text.contains("\nLast reading"))
+        assertTrue(!text.contains("range.Last"))
+    }
 }
