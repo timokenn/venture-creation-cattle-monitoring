@@ -14,20 +14,25 @@ import java.util.Locale
  * CSV export per cow (#5): readings + alerts written to cache/exports and
  * handed to the Android share sheet (Drive, WhatsApp, email — user's choice).
  *
- * Detailed export: one row per reading with EVERYTHING the collar sent
- * (temperature, activity, battery, accelerometer, gyroscope) plus alert
- * events merged into the same timeline. Timestamps are device-local
- * "yyyy-MM-dd HH:mm:ss" — spreadsheet-friendly and matching what the farmer
- * sees in the app. Fields are quoted per RFC 4180, so alert notes containing
- * commas survive round-tripping (the old exporter just deleted them).
+ * Built for a HUMAN reader first (farmer/lecturer opens it in Excel):
  *
- * The file starts with a short human-readable block (cow, device, exported
- * at, row count) before the column header — plain rows a person can read
- * without any CSV knowledge.
+ *   1. Short preamble — cow, device, export time.
+ *   2. DAILY SUMMARY — one row per day: reading count, min/avg/max temp,
+ *      alert count. The 10-second overview.
+ *   3. READINGS — one row per reading, six plain columns someone can
+ *      actually name: time, temperature, activity, battery, alert.
+ *      Raw accelerometer/gyroscope values are deliberately NOT exported —
+ *      they are machine signals, meaningless in a spreadsheet, and were
+ *      what made the earlier 13-column export confusing.
+ *
+ * Timestamps are device-local "yyyy-MM-dd HH:mm:ss". A UTF-8 BOM is written
+ * so Excel renders ° and — correctly on double-click. Fields are quoted per
+ * RFC 4180, so alert notes containing commas survive round-tripping.
  */
 object CsvExport {
 
     private val stamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+    private val day = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
     /** RFC 4180: quote fields containing comma, quote, or newline; "" escapes "." */
     private fun esc(v: String?): String {
@@ -47,33 +52,60 @@ object CsvExport {
         val safeName = cow.name.replace(Regex("[^A-Za-z0-9_-]"), "_")
         val file = File(dir, "decow_${safeName}_${System.currentTimeMillis()}.csv")
 
+        // --- daily summary: group by local calendar day -----------------------
+        // rows arrive sorted by timestamp, so LinkedHashMap keeps day order.
+        // Alert-only rows carry no temperature — count the alert, then skip
+        // the temp aggregation (else the alerts count would silently be 0).
+        class DayStat {
+            var count = 0
+            var min = Double.NaN
+            var max = Double.NaN
+            var sum = 0.0
+            var alerts = 0
+            val avg: Double get() = if (count == 0) Double.NaN else sum / count
+        }
+        val byDay = linkedMapOf<String, DayStat>()
+        for (r in rows) {
+            val s = byDay.getOrPut(day.format(r.timestamp)) { DayStat() }
+            if (r.alertType != null) s.alerts++
+            val t = r.temperature ?: continue
+            s.count++
+            if (s.count == 1) {
+                s.min = t
+                s.max = t
+            } else {
+                s.min = minOf(s.min, t)
+                s.max = maxOf(s.max, t)
+            }
+            s.sum += t
+        }
+
         file.bufferedWriter().use { w ->
-            // Human-readable preamble (one label per line, no commas to parse).
+            w.append('\uFEFF') // UTF-8 BOM — Excel detects encoding on double-click
             w.appendLine("DeCow data export")
             w.appendLine("cow: ${cow.name}")
             w.appendLine("device_id: ${cow.deviceId}")
             w.appendLine("exported: ${stamp.format(Date())} (device local time)")
-            w.appendLine("rows: ${rows.size}")
             w.appendLine()
-            w.appendLine(
-                "timestamp,temperature_c,activity_index,battery_pct," +
-                    "accel_x_g,accel_y_g,accel_z_g,gyro_x,gyro_y,gyro_z," +
-                    "data_quality,alert_type,alert_note",
-            )
+            w.appendLine("DAILY SUMMARY")
+            w.appendLine("date,readings,temp_min_c,temp_avg_c,temp_max_c,alerts")
+            for ((d, s) in byDay) {
+                w.appendLine(
+                    listOf(d, s.count, num(s.min, 1), num(s.avg, 1), num(s.max, 1), s.alerts)
+                        .joinToString(","),
+                )
+            }
+            w.appendLine()
+            w.appendLine("READINGS")
+            w.appendLine("timestamp,temperature_c,activity_0_100,battery_pct,alert_type,alert_note")
             for (r in rows) {
                 w.appendLine(
                     listOf(
                         stamp.format(r.timestamp),
                         num(r.temperature, 2),
-                        num(r.activityIndex, 3),
+                        // Same 0–100 scale the app's charts show (not the raw 0–1 ratio).
+                        num(r.activityIndex?.toActivityIndex(), 1),
                         num(r.battery, 0),
-                        num(r.accelX, 4),
-                        num(r.accelY, 4),
-                        num(r.accelZ, 4),
-                        num(r.gyroX, 4),
-                        num(r.gyroY, 4),
-                        num(r.gyroZ, 4),
-                        esc(r.dataQuality),
                         esc(r.alertType),
                         esc(r.alertNote),
                     ).joinToString(","),
@@ -93,8 +125,9 @@ object CsvExport {
 }
 
 /**
- * One CSV line: a full sensor reading, an alert-only marker, or both at the
- * same moment. Nulls export as empty cells.
+ * One timeline entry: a reading, an alert, or both at the same moment.
+ * Nulls export as empty cells. (Accelerometer/gyroscope stay available here
+ * for future machine-facing exports; the human CSV does not show them.)
  */
 data class ExportLine(
     val timestamp: Date,
