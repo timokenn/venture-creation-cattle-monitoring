@@ -3,6 +3,7 @@ package com.example.cattlemonitor.data
 import androidx.annotation.VisibleForTesting
 import com.example.cattlemonitor.BuildConfig
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.PostgresAction
@@ -87,6 +88,27 @@ class CattleRepository(
     fun observeAlerts(cowId: String? = null): Flow<List<Alert>> =
         liveQuery("alerts") { fetchAlerts(cowId) }
 
+    /**
+     * RLS returns an EMPTY list (HTTP 200) when a request carries a missing or
+     * expired user token — the UI then shows a phantom "0 sapi" herd with no
+     * error. This happens after the app idles in the background long enough
+     * for the 1-hour access token to lapse (Android freezes the process, so
+     * the auto-refresher stalls too).
+     *
+     * Guard: before every live fetch, check the session locally; if the token
+     * is expired or about to expire, force a refresh first. If an ALREADY
+     * expired token can't be refreshed (offline), throw so the liveQuery
+     * backoff loop retries instead of fetching with the dead token.
+     */
+    private suspend fun ensureFreshUserToken() {
+        val session = client.auth.currentSessionOrNull() ?: return
+        val expiresMs = session.expiresAt.toEpochMilliseconds()
+        if (expiresMs - System.currentTimeMillis() > 60_000) return // still fresh
+        runCatching { client.auth.refreshCurrentSession() }.onFailure {
+            if (expiresMs <= System.currentTimeMillis()) throw it // expired & unrefreshable → retry
+        }
+    }
+
     private suspend fun fetchCows(): List<Cow> =
         client.postgrest.from("cows")
             .select()
@@ -147,6 +169,7 @@ class CattleRepository(
                     var backoffMs = 2_000L
                     while (true) {
                         try {
+                            ensureFreshUserToken()
                             emit(fetch())
                             break
                         } catch (t: Throwable) {
