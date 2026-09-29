@@ -42,26 +42,29 @@ android {
 
     signingConfigs {
         create("release") {
-            // Release keystore stays OUT of git (.gitignore: *.jks). On this
-            // machine it's android/app/decow-release.jks (demo credential:
-            // store/key password decow2026, alias decow — rotate for Play
-            // Store). Override via local.properties or env without touching
-            // this file:
+            // Release keystore stays OUT of git (.gitignore: *.jks) and NO
+            // passwords are hardcoded — a leaked keystore password in git
+            // history can never be un-leaked. Configure per machine via the
+            // gitignored android/local.properties (preferred):
             //   release.storeFile / release.storePassword / release.keyAlias
+            //   / release.keyPassword
+            // or environment variables RELEASE_STORE_FILE /
+            // RELEASE_STORE_PASSWORD / RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD.
+            // assembleDebug needs none of these; assembleRelease fails at
+            // signing time if they're missing.
             val storeFile = localProperties.getProperty("release.storeFile")
                 ?: System.getenv("RELEASE_STORE_FILE")
-                ?: "decow-release.jks"
             val storePassword = localProperties.getProperty("release.storePassword")
                 ?: System.getenv("RELEASE_STORE_PASSWORD")
-                ?: "decow2026"
-            this.storeFile = file(storeFile)
-            this.storePassword = storePassword
+            this.storeFile = file(storeFile ?: "missing-keystore-configure-local.properties")
+            this.storePassword = storePassword ?: ""
             this.keyAlias = localProperties.getProperty("release.keyAlias")
                 ?: System.getenv("RELEASE_KEY_ALIAS")
                 ?: "decow"
             this.keyPassword = localProperties.getProperty("release.keyPassword")
                 ?: System.getenv("RELEASE_KEY_PASSWORD")
-                ?: "decow2026"
+                ?: storePassword
+                ?: ""
         }
     }
 
