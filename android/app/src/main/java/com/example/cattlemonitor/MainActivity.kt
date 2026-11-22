@@ -46,7 +46,6 @@ import com.example.cattlemonitor.ui.device.DeviceScreen
 import com.example.cattlemonitor.ui.overview.OverviewScreen
 import com.example.cattlemonitor.ui.settings.SettingsScreenWithLanguage
 import com.example.cattlemonitor.ui.splash.SplashScreen
-import com.example.cattlemonitor.ui.theme.Brand
 import com.example.cattlemonitor.ui.theme.CattleMonitorTheme
 import com.example.cattlemonitor.ui.theme.Surface as SurfaceColor
 import kotlinx.coroutines.flow.first
@@ -145,11 +144,11 @@ private fun AppNavHost(startIntent: Intent?) {
                                 }
                             },
                             icon = { Icon(dest.icon, contentDescription = label) },
-                            label = { Text(label) },
+                            label = { Text(label, style = MaterialTheme.typography.labelMedium) },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Brand,
-                                selectedTextColor = Brand,
-                                indicatorColor = Brand.copy(alpha = 0.15f),
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                             ),
                         )
                     }
@@ -193,7 +192,17 @@ private fun AppNavHost(startIntent: Intent?) {
                 )
             }
             composable("overview") {
-                OverviewScreen(onOpenCow = { navController.navigate("cow/$it") })
+                OverviewScreen(
+                    onOpenCow = { navController.navigate("cow/$it") },
+                    // Empty-herd call to action jumps to the Collars tab.
+                    onAddCow = {
+                        navController.navigate("device") {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                )
             }
             composable(
                 route = "cow/{cowId}",

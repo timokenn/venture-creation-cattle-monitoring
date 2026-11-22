@@ -57,7 +57,8 @@ fun OfflineBanner() {
         Text(
             stringResource(R.string.offline_banner),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onError.copy(alpha = 0.9f),
+            // onError is white: unreadable on this pale tint. Use the error hue itself.
+            color = MaterialTheme.colorScheme.error,
         )
     }
 }
@@ -116,6 +117,7 @@ fun OfflineScreen(onBackOnline: () -> Unit = {}) {
                 stringResource(R.string.offline_reconnect_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
             )
         }
     }

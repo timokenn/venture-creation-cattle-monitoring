@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +22,8 @@ import com.example.cattlemonitor.R
 import com.example.cattlemonitor.ServiceLocator
 import com.example.cattlemonitor.settings.ThemeMode
 import com.example.cattlemonitor.settings.ThemePrefs
+import com.example.cattlemonitor.ui.common.AppCard
+import com.example.cattlemonitor.ui.common.SegmentedToggle
 import kotlinx.coroutines.launch
 
 /**
@@ -37,32 +38,27 @@ fun ThemeSection() {
     val selected by prefs.selected.collectAsState(initial = ThemeMode.LIGHT)
     val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        Text(stringResource(R.string.settings_theme_title), style = MaterialTheme.typography.titleSmall)
+    AppCard {
+        Text(stringResource(R.string.settings_theme_title), style = MaterialTheme.typography.titleLarge)
         Text(
             stringResource(R.string.settings_theme_subtitle),
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp),
         )
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ThemeMode.entries.forEach { mode ->
-                FilterChip(
-                    selected = mode == selected,
-                    onClick = { scope.launch { prefs.set(mode) } },
-                    label = {
-                        Text(
-                            stringResource(
-                                when (mode) {
-                                    ThemeMode.LIGHT -> R.string.theme_light
-                                    ThemeMode.DARK -> R.string.theme_dark
-                                    ThemeMode.SYSTEM -> R.string.theme_system
-                                },
-                            ),
-                        )
+        Spacer(Modifier.height(12.dp))
+        SegmentedToggle(
+            options = ThemeMode.entries.map { mode ->
+                stringResource(
+                    when (mode) {
+                        ThemeMode.LIGHT -> R.string.theme_light
+                        ThemeMode.DARK -> R.string.theme_dark
+                        ThemeMode.SYSTEM -> R.string.theme_system
                     },
                 )
-            }
-        }
+            },
+            selectedIndex = ThemeMode.entries.indexOf(selected),
+            onSelect = { i -> scope.launch { prefs.set(ThemeMode.entries[i]) } },
+        )
     }
 }

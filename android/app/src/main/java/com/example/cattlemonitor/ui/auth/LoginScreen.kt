@@ -2,6 +2,10 @@ package com.example.cattlemonitor.ui.auth
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,7 +62,9 @@ fun LoginScreen(onLoggedIn: () -> Unit, vm: LoginViewModel = viewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 28.dp),
+            // Scrolls so the keyboard never hides the button on small phones.
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 28.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.Center,
     ) {
         // Language switch must be reachable BEFORE signing in — someone facing
@@ -72,18 +78,19 @@ fun LoginScreen(onLoggedIn: () -> Unit, vm: LoginViewModel = viewModel()) {
             contentDescription = "DeCow",
             modifier = Modifier
                 .fillMaxWidth()
-                .height(110.dp),
+                .padding(top = 24.dp)
+                .height(96.dp),
         )
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(32.dp))
         Text(
             stringResource(
                 if (mode == AuthMode.SIGN_IN) R.string.login_welcome else R.string.login_create_account,
             ),
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineMedium,
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            stringResource(R.string.login_tagline),
+            stringResource(if (mode == AuthMode.SIGN_IN) R.string.login_tagline else R.string.signup_tagline),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -93,6 +100,7 @@ fun LoginScreen(onLoggedIn: () -> Unit, vm: LoginViewModel = viewModel()) {
             onValueChange = { email = it; error = null },
             label = { Text(stringResource(R.string.field_email)) },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(10.dp))
@@ -153,7 +161,7 @@ fun LoginScreen(onLoggedIn: () -> Unit, vm: LoginViewModel = viewModel()) {
             },
             enabled = !loading && !locked && email.isNotBlank() && password.length >= 6,
             colors = ButtonDefaults.buttonColors(containerColor = Brand),
-            modifier = Modifier.fillMaxWidth().height(46.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp),
         ) {
             Text(
                 when {
@@ -166,7 +174,7 @@ fun LoginScreen(onLoggedIn: () -> Unit, vm: LoginViewModel = viewModel()) {
         }
         if (locked) {
             Text(
-                stringResource(R.string.login_locked_message, MAX_LOGIN_ATTEMPTS),
+                stringResource(R.string.login_locked_message, lockoutSeconds),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(top = 8.dp),
@@ -186,7 +194,7 @@ fun LoginScreen(onLoggedIn: () -> Unit, vm: LoginViewModel = viewModel()) {
                 onClick = { showResetDialog = true; error = null },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.forgot_password), color = Brand, style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.forgot_password), color = Brand, style = MaterialTheme.typography.labelLarge)
             }
         }
         TextButton(
@@ -198,7 +206,7 @@ fun LoginScreen(onLoggedIn: () -> Unit, vm: LoginViewModel = viewModel()) {
                     if (mode == AuthMode.SIGN_IN) R.string.login_switch_to_signup else R.string.signup_switch_to_login,
                 ),
                 color = Brand,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }
