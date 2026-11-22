@@ -14,7 +14,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.res.stringResource
+import com.example.cattlemonitor.R
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +30,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -185,7 +190,6 @@ fun SegmentedToggle(
                     label,
                     style = MaterialTheme.typography.labelLarge,
                     color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
                 )
             }
         }
@@ -230,8 +234,35 @@ fun InfoPill(text: String, color: Color, modifier: Modifier = Modifier) {
             text,
             style = MaterialTheme.typography.labelSmall,
             color = color,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/** "‹  2 / 5  ›" page switcher for long lists. Hidden when everything fits on one page. */
+@Composable
+fun Pager(
+    page: Int,
+    pageCount: Int,
+    onPageChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (pageCount <= 1) return
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = { onPageChange(page - 1) }, enabled = page > 0) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.pager_prev))
+        }
+        Text(
+            stringResource(R.string.pager_position, page + 1, pageCount),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        IconButton(onClick = { onPageChange(page + 1) }, enabled = page < pageCount - 1) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.pager_next))
+        }
     }
 }

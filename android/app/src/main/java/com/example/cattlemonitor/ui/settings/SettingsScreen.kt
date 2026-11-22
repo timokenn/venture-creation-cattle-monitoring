@@ -23,10 +23,9 @@ import androidx.compose.ui.unit.dp
 import com.example.cattlemonitor.R
 import com.example.cattlemonitor.data.AlertType
 import com.example.cattlemonitor.settings.NotificationPrefs
-import com.example.cattlemonitor.ui.alerts.icon
 import com.example.cattlemonitor.ui.alerts.severityStatus
 import com.example.cattlemonitor.ui.common.AppCard
-import com.example.cattlemonitor.ui.common.IconBubble
+import com.example.cattlemonitor.ui.common.StatusDot
 import com.example.cattlemonitor.ui.common.alertTypeLabel
 import com.example.cattlemonitor.ui.theme.statusColor
 import kotlinx.coroutines.launch
@@ -66,14 +65,17 @@ fun NotificationsSection(modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconBubble(icon = type.icon(), tint = statusColor(type.severityStatus()), size = 36.dp)
-                Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(alertTypeLabel(type), style = MaterialTheme.typography.titleMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        StatusDot(statusColor(type.severityStatus()))
+                        Spacer(Modifier.width(8.dp))
+                        Text(alertTypeLabel(type), style = MaterialTheme.typography.titleMedium)
+                    }
                     Text(
                         alertTypeDescription(type),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 16.dp),
                     )
                 }
                 Spacer(Modifier.width(8.dp))

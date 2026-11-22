@@ -11,6 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
@@ -41,6 +42,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import com.example.cattlemonitor.ui.alerts.AlertsScreen
 import com.example.cattlemonitor.ui.auth.LoginScreen
+import com.example.cattlemonitor.ui.common.PastureBackground
 import com.example.cattlemonitor.ui.detail.CowDetailScreen
 import com.example.cattlemonitor.ui.device.DeviceScreen
 import com.example.cattlemonitor.ui.overview.OverviewScreen
@@ -155,79 +157,85 @@ private fun AppNavHost(startIntent: Intent?) {
                 }
             }
         },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = "splash",
-            modifier = Modifier.padding(padding),
-        ) {
-            composable("splash") {
-                SplashScreen(
-                    onFinished = {
-                        scope.launch {
-                            // The splash decision now waits for the AUTH STATE to
-                            // resolve, not just a timer: supabase-kt restores the
-                            // persisted session from DataStore on process start, so
-                            // a returning user lands straight in the herd (req:
-                            // "save the login"). Falls back to login on timeout
-                            // (e.g. no session, or a refresh failure).
-                            val loggedIn = withTimeoutOrNull(8_000) {
-                                ServiceLocator.auth.sessionState.first { it != null }
-                            } == true
-                            val dest = if (loggedIn) "overview" else "login"
-                            navController.navigate(dest) {
-                                popUpTo("splash") { inclusive = true }
+        // Decorative pasture backdrop sits inside the content area (above the
+        // bottom bar) so its hills and fence stay visible.
+        Box(modifier = Modifier.padding(padding)) {
+            PastureBackground()
+            NavHost(
+                navController = navController,
+                startDestination = "splash",
+            ) {
+                composable("splash") {
+                    SplashScreen(
+                        onFinished = {
+                            scope.launch {
+                                // The splash decision now waits for the AUTH STATE to
+                                // resolve, not just a timer: supabase-kt restores the
+                                // persisted session from DataStore on process start, so
+                                // a returning user lands straight in the herd (req:
+                                // "save the login"). Falls back to login on timeout
+                                // (e.g. no session, or a refresh failure).
+                                val loggedIn = withTimeoutOrNull(8_000) {
+                                    ServiceLocator.auth.sessionState.first { it != null }
+                                } == true
+                                val dest = if (loggedIn) "overview" else "login"
+                                navController.navigate(dest) {
+                                    popUpTo("splash") { inclusive = true }
+                                }
                             }
-                        }
-                    },
-                )
-            }
-            composable("login") {
-                LoginScreen(
-                    onLoggedIn = {
-                        navController.navigate("overview") {
-                            popUpTo("login") { inclusive = true }
-                        }
-                    },
-                )
-            }
-            composable("overview") {
-                OverviewScreen(
-                    onOpenCow = { navController.navigate("cow/$it") },
-                    // Empty-herd call to action jumps to the Collars tab.
-                    onAddCow = {
-                        navController.navigate("device") {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
-            }
-            composable(
-                route = "cow/{cowId}",
-                deepLinks = listOf(navDeepLink { uriPattern = "cattleapp://cow/{cowId}" }),
-            ) { entry ->
-                val cowId = entry.arguments?.getString("cowId") ?: return@composable
-                CowDetailScreen(
-                    cowId = cowId,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable("alerts") {
-                AlertsScreen(onOpenCow = { navController.navigate("cow/$it") })
-            }
-            composable("device") {
-                DeviceScreen()
-            }
-            composable("settings") {
-                SettingsScreenWithLanguage(
-                    onLoggedOut = {
-                        navController.navigate("login") {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
-                )
+                        },
+                    )
+                }
+                composable("login") {
+                    LoginScreen(
+                        onLoggedIn = {
+                            navController.navigate("overview") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        },
+                    )
+                }
+                composable("overview") {
+                    OverviewScreen(
+                        onOpenCow = { navController.navigate("cow/$it") },
+                        // Empty-herd call to action jumps to the Collars tab.
+                        onAddCow = {
+                            navController.navigate("device") {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                    )
+                }
+                composable(
+                    route = "cow/{cowId}",
+                    deepLinks = listOf(navDeepLink { uriPattern = "cattleapp://cow/{cowId}" }),
+                ) { entry ->
+                    val cowId = entry.arguments?.getString("cowId") ?: return@composable
+                    CowDetailScreen(
+                        cowId = cowId,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable("alerts") {
+                    AlertsScreen(onOpenCow = { navController.navigate("cow/$it") })
+                }
+                composable("device") {
+                    DeviceScreen()
+                }
+                composable("settings") {
+                    SettingsScreenWithLanguage(
+                        onLoggedOut = {
+                            navController.navigate("login") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                    )
+                }
             }
         }
     }

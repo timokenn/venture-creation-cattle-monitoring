@@ -1,6 +1,10 @@
 package com.example.cattlemonitor.ui.alerts
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,18 +13,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,10 +31,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.cattlemonitor.R
@@ -46,7 +43,6 @@ import com.example.cattlemonitor.data.Cow
 import com.example.cattlemonitor.data.CowStatus
 import com.example.cattlemonitor.ui.common.AppCard
 import com.example.cattlemonitor.ui.common.EmptyState
-import com.example.cattlemonitor.ui.common.IconBubble
 import com.example.cattlemonitor.ui.common.InfoPill
 import com.example.cattlemonitor.ui.common.LoadingState
 import com.example.cattlemonitor.ui.common.OfflineBanner
@@ -72,13 +68,6 @@ fun AlertType.severityStatus(): CowStatus = when (this) {
     AlertType.POSSIBLE_ESTRUS,
     -> CowStatus.WARNING
     AlertType.DEVICE_OFFLINE -> CowStatus.OFFLINE
-}
-
-/** Icon that matches an alert's severity. */
-fun AlertType.icon(): ImageVector = when (severityStatus()) {
-    CowStatus.ALERT -> Icons.Filled.Warning
-    CowStatus.WARNING -> Icons.Filled.Info
-    else -> Icons.Filled.Notifications
 }
 
 @Composable
@@ -167,54 +156,62 @@ private fun filterLabel(f: Filter): String = stringResource(
     },
 )
 
-/** Shared alert card, also used for the alert history on Cow Detail. */
+/**
+ * Shared alert card, also used for the alert history on Cow Detail. A
+ * severity-colored stripe on the left carries the urgency; no icon clutter.
+ */
 @Composable
 fun AlertCard(a: Alert, cow: Cow?, onOpenCow: ((String) -> Unit)?) {
     val severity = if (a.resolved) StatusNormal else statusColor(a.type.severityStatus())
     AppCard(
         onClick = onOpenCow?.let { open -> { open(a.cowId) } },
-        contentPadding = PaddingValues(14.dp),
+        contentPadding = PaddingValues(0.dp),
     ) {
-        Row(verticalAlignment = Alignment.Top) {
-            IconBubble(icon = if (a.resolved) Icons.Filled.CheckCircle else a.type.icon(), tint = severity)
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Box(
+                modifier = Modifier
+                    .width(5.dp)
+                    .fillMaxHeight()
+                    .background(severity),
+            )
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 14.dp, vertical = 12.dp)) {
+                Row(verticalAlignment = Alignment.Top) {
                     Text(
                         alertTypeLabel(a.type),
                         style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier.weight(1f),
                     )
-                    if (a.resolved) {
-                        Spacer(Modifier.width(8.dp))
-                        InfoPill(stringResource(R.string.alerts_resolved), StatusNormal)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        relativeTime(a.timestamp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (cow != null || a.resolved) {
+                    Row(
+                        modifier = Modifier.padding(top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        cow?.let {
+                            Text(
+                                it.name,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        if (a.resolved) InfoPill(stringResource(R.string.alerts_resolved), StatusNormal)
                     }
                 }
-                val meta = listOfNotNull(cow?.name, relativeTime(a.timestamp)).joinToString(" · ")
-                Text(
-                    meta,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
                 if (a.note.isNotBlank()) {
-                    Spacer(Modifier.height(6.dp))
                     Text(
                         a.note,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 6.dp),
                     )
                 }
-            }
-            if (onOpenCow != null) {
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(22.dp).align(Alignment.CenterVertically),
-                )
             }
         }
     }

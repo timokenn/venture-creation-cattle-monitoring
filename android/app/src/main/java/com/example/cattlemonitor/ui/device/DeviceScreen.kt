@@ -40,7 +40,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.size
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -246,9 +245,9 @@ fun DeviceScreen(vm: DeviceViewModel = viewModel()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         OutlinedButton(
                             onClick = { scanQr() },
-                            modifier = Modifier.weight(1f).height(48.dp),
+                            modifier = Modifier.height(48.dp),
                         ) {
-                            Text(stringResource(R.string.devices_scan_qr), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(stringResource(R.string.devices_scan_qr))
                         }
                         Button(
                             onClick = {
@@ -268,7 +267,7 @@ fun DeviceScreen(vm: DeviceViewModel = viewModel()) {
                         ) {
                             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.devices_add), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(stringResource(R.string.devices_add))
                         }
                     }
                     message?.let { FeedbackLine(it) }
@@ -356,15 +355,11 @@ private fun CollarRow(
                 Text(
                     cow.name,
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     cow.deviceId,
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
             IconButton(onClick = onRename) {

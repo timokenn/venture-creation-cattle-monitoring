@@ -40,12 +40,6 @@ fun ThemeSection() {
 
     AppCard {
         Text(stringResource(R.string.settings_theme_title), style = MaterialTheme.typography.titleLarge)
-        Text(
-            stringResource(R.string.settings_theme_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp),
-        )
         Spacer(Modifier.height(12.dp))
         SegmentedToggle(
             options = ThemeMode.entries.map { mode ->
