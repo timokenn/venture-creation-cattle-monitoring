@@ -2,19 +2,30 @@ package com.example.cattlemonitor.ui.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -25,38 +36,43 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.cattlemonitor.data.AlertType
-import com.example.cattlemonitor.ui.theme.StatusWarning
-import kotlin.math.roundToInt
 import com.example.cattlemonitor.R
 import com.example.cattlemonitor.ServiceLocator
 import com.example.cattlemonitor.data.Alert
+import com.example.cattlemonitor.data.AlertType
 import com.example.cattlemonitor.data.Cow
 import com.example.cattlemonitor.data.Reading
 import com.example.cattlemonitor.data.isoToDate
+import com.example.cattlemonitor.ui.alerts.AlertCard
+import com.example.cattlemonitor.ui.common.AppCard
+import com.example.cattlemonitor.ui.common.CowAvatar
 import com.example.cattlemonitor.ui.common.LineChart
 import com.example.cattlemonitor.ui.common.OfflineBanner
 import com.example.cattlemonitor.ui.common.OfflineScreen
+import com.example.cattlemonitor.ui.common.ScreenPadding
+import com.example.cattlemonitor.ui.common.SectionHeader
+import com.example.cattlemonitor.ui.common.SegmentedToggle
 import com.example.cattlemonitor.ui.common.StatusBadge
-import com.example.cattlemonitor.ui.common.alertTypeLabel
 import com.example.cattlemonitor.ui.common.relativeTime
 import com.example.cattlemonitor.ui.common.statusExplanation
+import com.example.cattlemonitor.ui.overview.BatteryIndicator
 import com.example.cattlemonitor.ui.theme.Accent
-import com.example.cattlemonitor.ui.theme.Brand
-import com.example.cattlemonitor.ui.theme.Line
-import com.example.cattlemonitor.ui.theme.Surface
+import com.example.cattlemonitor.ui.theme.StatusWarning
+import com.example.cattlemonitor.ui.theme.statusColor
 import com.example.cattlemonitor.util.toActivityIndex
 import kotlinx.coroutines.launch
 import java.util.Date
 import java.util.concurrent.TimeUnit
+import kotlin.math.roundToInt
 
 private enum class Range(val hours: Long) {
     H24(24),
@@ -229,122 +245,229 @@ private fun DetailBody(
         }.toSet()
     }
 
+
+    val status = cow?.effectiveStatus(Date())
     Column(modifier = Modifier.fillMaxSize()) {
         OfflineBanner()
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp)) {
-        item {
-            Row(
-                modifier = Modifier
-                    .clickable(onClick = onBack)
-                    .padding(vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(stringResource(R.string.detail_back), color = Brand, style = MaterialTheme.typography.titleSmall)
-            }
-            EstrusWindowCard(alerts, cow)
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                com.example.cattlemonitor.ui.common.CowAvatar(cow = cow, size = 44.dp)
-                Text(
-                    cow?.name ?: cowId,
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.weight(1f),
-                )
-                cow?.let { StatusBadge(it.status) }
-            }
-            cow?.let {
-                Text(
-                    statusExplanation(it),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-        }
-        item {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(vertical = 14.dp),
-            ) {
-                Range.entries.forEach { r ->
-                    RangeChip(rangeLabel(r), selected == r) { onSelectRange(r) }
-                }
-                Spacer(Modifier.weight(1f))
-                RangeChip(stringResource(R.string.detail_export), selected = false, onClick = onExport)
-            }
-        }
-        item { SectionLabel(stringResource(R.string.detail_temp_section)) }
-        item {
-            ChartCard {
-                LineChart(
-                    values = tempValues,
-                    modifier = Modifier.fillMaxWidth(),
-                    baselineValue = cow?.baselineTemp,
-                    showAxis = true,
-                    valueSuffix = "°",
-                    xAxisLabels = timeAxisLabels(selected),
-                    suspicious = tempSuspicious,
-                    alertMarkers = alertMarkers,
-                )
-            }
-            if (suspiciousCount > 0) {
-                Text(
-                    stringResource(R.string.detail_suspicious_caption, suspiciousCount),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-        }
-        item {
-            SectionLabel(
-                stringResource(
-                    R.string.detail_activity_section,
-                    cow?.name ?: stringResource(R.string.detail_this_cow),
-                ),
-            )
-        }
-        item {
-            ChartCard {
-                LineChart(
-                    values = activityValues,
-                    modifier = Modifier.fillMaxWidth(),
-                    color = Accent,
-                    baselineValue = cow?.baselineActivity?.toActivityIndex(),
-                    showAxis = true,
-                    xAxisLabels = timeAxisLabels(selected),
-                )
-            }
-        }
-        item { SectionLabel(stringResource(R.string.detail_alert_history)) }
-        if (alerts.isEmpty()) {
+        LazyColumn(
+            contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 8.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            // Top bar: back on the left, export on the right.
             item {
-                Text(
-                    stringResource(R.string.detail_no_alerts),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onBack, contentPadding = PaddingValues(start = 0.dp, end = 12.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.detail_back), style = MaterialTheme.typography.labelLarge)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    OutlinedButton(
+                        onClick = onExport,
+                        enabled = cow != null,
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                    ) {
+                        Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.detail_export), style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            }
+
+            // Hero: who she is, how she's doing, and why.
+            item {
+                val tint = status?.let { statusColor(it) } ?: MaterialTheme.colorScheme.outline
+                AppCard(borderColor = tint.copy(alpha = 0.5f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CowAvatar(cow = cow, size = 64.dp)
+                        Column(modifier = Modifier.weight(1f).padding(horizontal = 14.dp)) {
+                            Text(
+                                cow?.name ?: cowId,
+                                style = MaterialTheme.typography.headlineSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            cow?.let {
+                                Text(
+                                    it.deviceId,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                        status?.let { StatusBadge(it) }
+                    }
+                    cow?.let {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 14.dp)
+                                .fillMaxWidth()
+                                .background(tint.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                                .padding(12.dp),
+                        ) {
+                            Text(
+                                statusExplanation(it),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+            }
+
+            item { EstrusWindowCard(alerts, cow) }
+
+            cow?.let { c -> item { MetricTiles(c) } }
+
+            item {
+                SegmentedToggle(
+                    options = Range.entries.map { rangeLabel(it) },
+                    selectedIndex = selected.ordinal,
+                    onSelect = { onSelectRange(Range.entries[it]) },
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
-        } else {
-            items(alerts, key = { it.id }) { a ->
-                Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                    Text(
-                        "${alertTypeLabel(a.type)} · ${relativeTime(a.timestamp)}",
-                        style = MaterialTheme.typography.titleMedium,
+
+            item {
+                ChartCard(
+                    title = stringResource(R.string.detail_temp_section),
+                    subtitle = stringResource(R.string.detail_temp_subtitle),
+                    hasData = tempValues.size >= 2,
+                ) {
+                    LineChart(
+                        values = tempValues,
+                        modifier = Modifier.fillMaxWidth(),
+                        baselineValue = cow?.baselineTemp,
+                        showAxis = true,
+                        valueSuffix = "°",
+                        xAxisLabels = timeAxisLabels(selected),
+                        suspicious = tempSuspicious,
+                        alertMarkers = alertMarkers,
                     )
+                    if (suspiciousCount > 0) {
+                        Row(modifier = Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Top) {
+                            Icon(
+                                Icons.Filled.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp).padding(top = 1.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                pluralStringResource(R.plurals.detail_suspicious_caption, suspiciousCount, suspiciousCount),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                ChartCard(
+                    title = stringResource(R.string.detail_activity_section),
+                    subtitle = stringResource(R.string.detail_activity_subtitle),
+                    hasData = activityValues.size >= 2,
+                ) {
+                    LineChart(
+                        values = activityValues,
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Accent,
+                        baselineValue = cow?.baselineActivity?.toActivityIndex(),
+                        showAxis = true,
+                        xAxisLabels = timeAxisLabels(selected),
+                    )
+                }
+            }
+
+            item { SectionHeader(stringResource(R.string.detail_alert_history), modifier = Modifier.padding(top = 0.dp)) }
+            if (alerts.isEmpty()) {
+                item {
                     Text(
-                        a.note,
-                        style = MaterialTheme.typography.bodySmall,
+                        stringResource(R.string.detail_no_alerts),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            } else {
+                items(alerts, key = { it.id }) { a -> AlertCard(a, cow = null, onOpenCow = null) }
             }
         }
     }
 }
+
+/** At-a-glance numbers: current temperature and activity vs. her normal, freshness, battery. */
+@Composable
+private fun MetricTiles(cow: Cow) {
+    val learning = stringResource(R.string.detail_learning_normal)
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MetricTile(
+                label = stringResource(R.string.detail_metric_temp),
+                value = cow.latestTemp?.let { "%.1f °C".format(it) } ?: "—",
+                caption = cow.baselineTemp?.let { stringResource(R.string.detail_normal_value, "%.1f °C".format(it)) } ?: learning,
+                modifier = Modifier.weight(1f),
+            )
+            MetricTile(
+                label = stringResource(R.string.detail_metric_activity),
+                value = cow.latestActivity?.let { "${it.toActivityIndex().roundToInt()}" } ?: "—",
+                caption = cow.baselineActivity?.let {
+                    stringResource(R.string.detail_normal_value, "${it.toActivityIndex().roundToInt()}")
+                } ?: learning,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MetricTile(
+                label = stringResource(R.string.detail_metric_last_seen),
+                value = cow.lastSeen?.let { relativeTime(it) } ?: stringResource(R.string.overview_no_data_yet),
+                modifier = Modifier.weight(1f),
+            )
+            cow.batteryLevel?.let { level ->
+                MetricTile(
+                    label = stringResource(R.string.detail_metric_battery),
+                    value = "${level.toInt().coerceIn(0, 100)}%",
+                    modifier = Modifier.weight(1f),
+                    trailing = { BatteryIndicator(level) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricTile(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    caption: String? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    AppCard(modifier = modifier, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            trailing?.invoke()
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(value, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (caption != null) {
+            Text(
+                caption,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
 }
 
 /**
@@ -373,58 +496,51 @@ private fun EstrusWindowCard(alerts: List<Alert>, cow: Cow?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(StatusWarning.copy(alpha = 0.14f), RoundedCornerShape(10.dp))
-            .border(1.dp, StatusWarning, RoundedCornerShape(10.dp))
-            .padding(12.dp),
+            .background(StatusWarning.copy(alpha = 0.14f), RoundedCornerShape(20.dp))
+            .border(1.dp, StatusWarning, RoundedCornerShape(20.dp))
+            .padding(16.dp),
     ) {
         Text(
             stringResource(R.string.estrus_window_title, cow?.name ?: ""),
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleMedium,
             color = StatusWarning,
         )
         Text(
             text,
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 2.dp),
+            modifier = Modifier.padding(top = 4.dp),
         )
     }
 }
 
+/** Chart inside a card, with its title and explanation above the plot. */
 @Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text.uppercase(),
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 6.dp, bottom = 8.dp),
-    )
-}
-
-@Composable
-private fun ChartCard(content: @Composable () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(10.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
-            .padding(12.dp),
-    ) { content() }
-}
-
-@Composable
-private fun RangeChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) Brand else Color.Transparent)
-            .border(1.dp, if (selected) Brand else MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 7.dp),
-    ) {
+private fun ChartCard(
+    title: String,
+    subtitle: String,
+    hasData: Boolean,
+    content: @Composable () -> Unit,
+) {
+    AppCard {
+        Text(title, style = MaterialTheme.typography.titleLarge)
         Text(
-            label,
-            style = MaterialTheme.typography.titleSmall,
-            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp, bottom = 12.dp),
         )
+        if (hasData) {
+            content()
+        } else {
+            // LineChart draws nothing with fewer than 2 points; say so instead
+            // of leaving an empty box.
+            Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                Text(
+                    stringResource(R.string.detail_no_readings),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }

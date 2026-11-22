@@ -4,13 +4,23 @@ import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,14 +66,65 @@ fun StatusBadge(status: CowStatus, modifier: Modifier = Modifier) {
             text = statusLabel(status),
             style = MaterialTheme.typography.labelSmall,
             color = Color.White,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            modifier = Modifier.padding(start = 10.dp, end = 9.dp, top = 4.dp, bottom = 4.dp),
         )
     }
 }
+/**
+ * Centered empty/zero state: optional icon, title, explanation and a single
+ * call to action, so an empty screen tells the user what to do next.
+ */
 @Composable
-fun EmptyState(text: String) {
+fun EmptyState(
+    text: String,
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    icon: ImageVector? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
+    Box(modifier = modifier.fillMaxSize().padding(horizontal = 32.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (icon != null) {
+                IconBubble(icon = icon, tint = MaterialTheme.colorScheme.primary, size = 72.dp)
+                Spacer(Modifier.height(16.dp))
+            }
+            if (title != null) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(6.dp))
+            }
+            Text(
+                text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            if (actionLabel != null && onAction != null) {
+                Spacer(Modifier.height(20.dp))
+                Button(onClick = onAction) { Text(actionLabel) }
+            }
+        }
+    }
+}
+
+/** Spinner + caption while the first page of data loads. */
+@Composable
+fun LoadingState(text: String) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 3.dp,
+                modifier = Modifier.size(32.dp),
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -182,9 +243,32 @@ fun LineChart(
             val x = xFor(i)
             val y = yFor(v)
             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            drawCircle(color = color, radius = 2.dp.toPx(), center = Offset(x, y))
         }
-        drawPath(path, color = color, style = Stroke(width = 4f))
+        // Soft area fill under the line gives the chart weight at a glance.
+        val area = Path().apply {
+            addPath(path)
+            lineTo(xFor(values.size - 1), plotHeight)
+            lineTo(xFor(0), plotHeight)
+            close()
+        }
+        drawPath(
+            area,
+            brush = Brush.verticalGradient(
+                colors = listOf(color.copy(alpha = 0.22f), color.copy(alpha = 0f)),
+                startY = 0f,
+                endY = plotHeight,
+            ),
+        )
+        drawPath(path, color = color, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        // Individual dots only when there are few enough points to tell apart.
+        if (values.size <= 48) {
+            values.forEachIndexed { i, v ->
+                drawCircle(color = color, radius = 2.5.dp.toPx(), center = Offset(xFor(i), yFor(v)))
+            }
+        }
+        // Always mark the latest reading.
+        drawCircle(color = color, radius = 5.dp.toPx(), center = Offset(xFor(values.size - 1), yFor(values.last())))
+        drawCircle(color = Color.White, radius = 2.dp.toPx(), center = Offset(xFor(values.size - 1), yFor(values.last())))
 
         suspicious.forEach { i ->
             if (i in values.indices) {
