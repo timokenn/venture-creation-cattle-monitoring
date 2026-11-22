@@ -1,9 +1,10 @@
 package com.example.cattlemonitor.ui.overview
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -34,16 +34,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -67,7 +63,6 @@ import com.example.cattlemonitor.ui.common.relativeTime
 import com.example.cattlemonitor.ui.theme.Brand
 import com.example.cattlemonitor.ui.theme.StatusAlert
 import com.example.cattlemonitor.ui.theme.StatusNormal
-import com.example.cattlemonitor.ui.theme.StatusOffline
 import com.example.cattlemonitor.ui.theme.StatusWarning
 import com.example.cattlemonitor.ui.theme.statusColor
 import java.util.Date
@@ -138,7 +133,6 @@ fun OverviewScreen(
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     item(span = { GridItemSpan(maxLineSpan) }) { HerdHealthCard(list, now) }
-                    item(span = { GridItemSpan(maxLineSpan) }) { StatStrip(list, now) }
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         SectionHeader(
                             text = stringResource(R.string.overview_section_cows),
@@ -165,134 +159,77 @@ fun OverviewScreen(
 }
 
 /**
- * Colored summary at the top of the herd: one plain-language sentence about
- * how the herd is doing, plus a ring showing the share of healthy cows.
+ * Herd summary: one plain sentence about the herd, a bar showing how the
+ * herd splits across statuses, and a legend with the counts.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HerdHealthCard(cows: List<Cow>, now: Date) {
-    val statuses = cows.map { it.effectiveStatus(now) }
-    val alerts = statuses.count { it == CowStatus.ALERT }
-    val warnings = statuses.count { it == CowStatus.WARNING }
-    val offline = statuses.count { it == CowStatus.OFFLINE }
-    val healthy = statuses.count { it == CowStatus.NORMAL }
+    val counts = CowStatus.entries.associateWith { s -> cows.count { it.effectiveStatus(now) == s } }
+    val alerts = counts[CowStatus.ALERT] ?: 0
+    val warnings = counts[CowStatus.WARNING] ?: 0
+    val offline = counts[CowStatus.OFFLINE] ?: 0
     val attention = alerts + warnings
-
-    val background = when {
-        alerts > 0 -> StatusAlert
-        warnings > 0 -> StatusWarning
-        offline > 0 -> StatusOffline
-        else -> Brand
-    }
     val headline = when {
         attention > 0 -> pluralStringResource(R.plurals.overview_need_attention, attention, attention)
         offline > 0 -> pluralStringResource(R.plurals.overview_collars_offline, offline, offline)
         else -> stringResource(R.string.overview_all_healthy)
     }
-    val fraction = if (cows.isEmpty()) 0f else healthy.toFloat() / cows.size
+    // Most urgent segment first, matching the card order below.
+    val order = listOf(CowStatus.ALERT, CowStatus.WARNING, CowStatus.OFFLINE, CowStatus.NORMAL)
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(background, RoundedCornerShape(24.dp))
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .clip(RoundedCornerShape(24.dp))
+            .background(Brand)
+            .padding(20.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                stringResource(R.string.overview_health_label).uppercase(),
-                style = MaterialTheme.typography.titleSmall,
-                color = Color.White.copy(alpha = 0.75f),
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(headline, style = MaterialTheme.typography.titleLarge, color = Color.White)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                stringResource(R.string.overview_healthy_of, healthy, cows.size),
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.85f),
-            )
-        }
-        Spacer(Modifier.width(16.dp))
-        HealthRing(fraction = fraction, modifier = Modifier.size(76.dp))
-    }
-}
-
-@Composable
-private fun HealthRing(fraction: Float, modifier: Modifier = Modifier) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val stroke = 7.dp.toPx()
-            val inset = stroke / 2
-            val arcSize = Size(size.width - stroke, size.height - stroke)
-            drawArc(
-                color = Color.White.copy(alpha = 0.25f),
-                startAngle = 0f,
-                sweepAngle = 360f,
-                useCenter = false,
-                topLeft = Offset(inset, inset),
-                size = arcSize,
-                style = Stroke(width = stroke),
-            )
-            drawArc(
-                color = Color.White,
-                startAngle = -90f,
-                sweepAngle = 360f * fraction,
-                useCenter = false,
-                topLeft = Offset(inset, inset),
-                size = arcSize,
-                style = Stroke(width = stroke, cap = StrokeCap.Round),
-            )
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("${(fraction * 100).toInt()}%", style = MaterialTheme.typography.titleLarge, color = Color.White)
-            Text(
-                stringResource(R.string.overview_healthy_ring),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.8f),
-            )
-        }
-    }
-}
-
-/** One tile per status with its count. */
-@Composable
-private fun StatStrip(cows: List<Cow>, now: Date) {
-    val counts = CowStatus.entries.associateWith { s -> cows.count { it.effectiveStatus(now) == s } }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        CowStatus.entries.forEach { status ->
-            val count = counts[status] ?: 0
-            val color = statusColor(status)
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .background(
-                        if (count > 0) color.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surface,
-                        RoundedCornerShape(16.dp),
+        Text(
+            stringResource(R.string.overview_health_label).uppercase(),
+            style = MaterialTheme.typography.titleSmall,
+            color = Color.White.copy(alpha = 0.7f),
+        )
+        Text(
+            headline,
+            style = MaterialTheme.typography.headlineSmall,
+            color = Color.White,
+            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
+        )
+        // Composition bar: one segment per status, width = share of the herd.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(RoundedCornerShape(50))
+                .background(Color.White.copy(alpha = 0.18f)),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            order.forEach { status ->
+                val n = counts[status] ?: 0
+                if (n > 0) {
+                    Box(
+                        modifier = Modifier
+                            .weight(n.toFloat())
+                            .fillMaxHeight()
+                            .background(if (status == CowStatus.NORMAL) Color(0xFFB9D7A8) else statusColor(status)),
                     )
-                    .border(
-                        1.dp,
-                        if (count > 0) color.copy(alpha = 0.35f) else MaterialTheme.colorScheme.outline,
-                        RoundedCornerShape(16.dp),
-                    )
-                    .padding(horizontal = 10.dp, vertical = 10.dp),
-            ) {
-                Text(
-                    "$count",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = if (count > 0) color else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                }
+            }
+        }
+        FlowRow(
+            modifier = Modifier.padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            order.reversed().forEach { status ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    StatusDot(color, size = 6.dp)
-                    Spacer(Modifier.width(4.dp))
+                    StatusDot(if (status == CowStatus.NORMAL) Color(0xFFB9D7A8) else statusColor(status), size = 8.dp)
+                    Spacer(Modifier.width(6.dp))
                     Text(
-                        statusLabelPlain(status),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        "${counts[status] ?: 0} ${statusLabelPlain(status)}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White.copy(alpha = 0.9f),
                     )
                 }
             }
@@ -351,8 +288,6 @@ private fun CowGridCard(cow: Cow, now: Date, onClick: () -> Unit) {
         Text(
             cow.name,
             style = MaterialTheme.typography.titleMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
         TemperatureText(cow.latestTemp, big = false)
         Spacer(Modifier.height(8.dp))
@@ -372,8 +307,6 @@ private fun CowListCard(cow: Cow, now: Date, onClick: () -> Unit) {
                 Text(
                     cow.name,
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(4.dp))
                 CardFooter(cow)
@@ -395,8 +328,6 @@ private fun CardFooter(cow: Cow) {
             cow.lastSeen?.let { relativeTime(it) } ?: stringResource(R.string.overview_no_data_yet),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
         cow.batteryLevel?.let {

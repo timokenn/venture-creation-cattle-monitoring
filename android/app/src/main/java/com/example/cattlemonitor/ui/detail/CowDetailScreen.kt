@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,11 +22,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +44,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -58,6 +61,7 @@ import com.example.cattlemonitor.ui.common.CowAvatar
 import com.example.cattlemonitor.ui.common.LineChart
 import com.example.cattlemonitor.ui.common.OfflineBanner
 import com.example.cattlemonitor.ui.common.OfflineScreen
+import com.example.cattlemonitor.ui.common.Pager
 import com.example.cattlemonitor.ui.common.ScreenPadding
 import com.example.cattlemonitor.ui.common.SectionHeader
 import com.example.cattlemonitor.ui.common.SegmentedToggle
@@ -66,6 +70,7 @@ import com.example.cattlemonitor.ui.common.relativeTime
 import com.example.cattlemonitor.ui.common.statusExplanation
 import com.example.cattlemonitor.ui.overview.BatteryIndicator
 import com.example.cattlemonitor.ui.theme.Accent
+import com.example.cattlemonitor.ui.theme.StatusNormal
 import com.example.cattlemonitor.ui.theme.StatusWarning
 import com.example.cattlemonitor.ui.theme.statusColor
 import com.example.cattlemonitor.util.toActivityIndex
@@ -73,6 +78,9 @@ import kotlinx.coroutines.launch
 import java.util.Date
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
+
+/** Alert history page size on Cow Detail. */
+private const val ALERTS_PER_PAGE = 5
 
 private enum class Range(val hours: Long) {
     H24(24),
@@ -247,6 +255,7 @@ private fun DetailBody(
 
 
     val status = cow?.effectiveStatus(Date())
+    var alertPage by rememberSaveable { mutableStateOf(0) }
     Column(modifier = Modifier.fillMaxSize()) {
         OfflineBanner()
         LazyColumn(
@@ -285,16 +294,12 @@ private fun DetailBody(
                             Text(
                                 cow?.name ?: cowId,
                                 style = MaterialTheme.typography.headlineSmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
                             cow?.let {
                                 Text(
                                     it.deviceId,
                                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }
@@ -334,7 +339,7 @@ private fun DetailBody(
             item {
                 ChartCard(
                     title = stringResource(R.string.detail_temp_section),
-                    subtitle = stringResource(R.string.detail_temp_subtitle),
+                    unit = "°C",
                     hasData = tempValues.size >= 2,
                 ) {
                     LineChart(
@@ -369,7 +374,8 @@ private fun DetailBody(
             item {
                 ChartCard(
                     title = stringResource(R.string.detail_activity_section),
-                    subtitle = stringResource(R.string.detail_activity_subtitle),
+                    unit = stringResource(R.string.detail_activity_unit),
+                    lineColor = Accent,
                     hasData = activityValues.size >= 2,
                 ) {
                     LineChart(
@@ -384,6 +390,8 @@ private fun DetailBody(
             }
 
             item { SectionHeader(stringResource(R.string.detail_alert_history), modifier = Modifier.padding(top = 0.dp)) }
+            val pageCount = (alerts.size + ALERTS_PER_PAGE - 1) / ALERTS_PER_PAGE
+            val page = alertPage.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
             if (alerts.isEmpty()) {
                 item {
                     Text(
@@ -393,25 +401,32 @@ private fun DetailBody(
                     )
                 }
             } else {
-                items(alerts, key = { it.id }) { a -> AlertCard(a, cow = null, onOpenCow = null) }
+                // Paged instead of one endless scroll: ALERTS_PER_PAGE at a time.
+                items(
+                    alerts.drop(page * ALERTS_PER_PAGE).take(ALERTS_PER_PAGE),
+                    key = { it.id },
+                ) { a -> AlertCard(a, cow = null, onOpenCow = null) }
+                item { Pager(page = page, pageCount = pageCount, onPageChange = { alertPage = it }) }
             }
         }
     }
 }
 
-/** At-a-glance numbers: current temperature and activity vs. her normal, freshness, battery. */
+/** At-a-glance numbers in one card: temperature and activity vs. her normal, freshness, battery. */
 @Composable
 private fun MetricTiles(cow: Cow) {
     val learning = stringResource(R.string.detail_learning_normal)
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MetricTile(
+    val divider = MaterialTheme.colorScheme.outline
+    AppCard(contentPadding = PaddingValues(0.dp)) {
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Metric(
                 label = stringResource(R.string.detail_metric_temp),
                 value = cow.latestTemp?.let { "%.1f °C".format(it) } ?: "—",
                 caption = cow.baselineTemp?.let { stringResource(R.string.detail_normal_value, "%.1f °C".format(it)) } ?: learning,
                 modifier = Modifier.weight(1f),
             )
-            MetricTile(
+            VerticalDivider(color = divider)
+            Metric(
                 label = stringResource(R.string.detail_metric_activity),
                 value = cow.latestActivity?.let { "${it.toActivityIndex().roundToInt()}" } ?: "—",
                 caption = cow.baselineActivity?.let {
@@ -420,14 +435,16 @@ private fun MetricTiles(cow: Cow) {
                 modifier = Modifier.weight(1f),
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MetricTile(
+        HorizontalDivider(color = divider)
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Metric(
                 label = stringResource(R.string.detail_metric_last_seen),
                 value = cow.lastSeen?.let { relativeTime(it) } ?: stringResource(R.string.overview_no_data_yet),
                 modifier = Modifier.weight(1f),
             )
             cow.batteryLevel?.let { level ->
-                MetricTile(
+                VerticalDivider(color = divider)
+                Metric(
                     label = stringResource(R.string.detail_metric_battery),
                     value = "${level.toInt().coerceIn(0, 100)}%",
                     modifier = Modifier.weight(1f),
@@ -439,14 +456,14 @@ private fun MetricTiles(cow: Cow) {
 }
 
 @Composable
-private fun MetricTile(
+private fun Metric(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
     caption: String? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
-    AppCard(modifier = modifier, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
+    Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 label.uppercase(),
@@ -456,15 +473,12 @@ private fun MetricTile(
             )
             trailing?.invoke()
         }
-        Spacer(Modifier.height(4.dp))
-        Text(value, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(value, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 4.dp))
         if (caption != null) {
             Text(
                 caption,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -513,22 +527,34 @@ private fun EstrusWindowCard(alerts: List<Alert>, cow: Cow?) {
     }
 }
 
-/** Chart inside a card, with its title and explanation above the plot. */
+/** Chart inside a card: title and unit on one line, a small legend, then the plot. */
 @Composable
 private fun ChartCard(
     title: String,
-    subtitle: String,
+    unit: String,
     hasData: Boolean,
+    lineColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.error,
     content: @Composable () -> Unit,
 ) {
     AppCard {
-        Text(title, style = MaterialTheme.typography.titleLarge)
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp, bottom = 12.dp),
-        )
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(title, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                unit,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 3.dp),
+            )
+        }
+        Row(
+            modifier = Modifier.padding(top = 6.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LegendSwatch(lineColor, stringResource(R.string.detail_legend_reading), line = true)
+            Spacer(Modifier.width(14.dp))
+            LegendSwatch(StatusNormal, stringResource(R.string.detail_legend_normal), line = false)
+        }
         if (hasData) {
             content()
         } else {
@@ -542,5 +568,19 @@ private fun ChartCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LegendSwatch(color: androidx.compose.ui.graphics.Color, label: String, line: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .width(14.dp)
+                .height(if (line) 3.dp else 10.dp)
+                .background(if (line) color else color.copy(alpha = 0.25f), RoundedCornerShape(2.dp)),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

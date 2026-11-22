@@ -11,8 +11,8 @@
     <!-- Login / autentikasi -->
     <string name="login_welcome">Selamat datang kembali</string>
     <string name="login_create_account">Buat akun Anda</string>
-    <string name="login_tagline">Masuk untuk memantau kawanan sapi Anda.</string>
-    <string name="signup_tagline">Mulai pantau kesehatan kawanan Anda dalam hitungan menit.</string>
+    <string name="login_tagline">Pantau kawanan Anda.</string>
+    <string name="signup_tagline">Pantau kesehatan kawanan Anda.</string>
     <string name="field_email">Email</string>
     <string name="field_password">Kata sandi</string>
     <string name="password_show">Tampilkan kata sandi</string>
@@ -23,21 +23,21 @@
     <string name="signup_switch_to_login">Sudah punya akun? Masuk</string>
     <string name="forgot_password">Lupa kata sandi?</string>
     <string name="login_locked_button">Coba lagi dalam %1$d dtk</string>
-    <string name="login_locked_message">Terlalu banyak percobaan gagal. Tunggu %1$d detik lalu coba lagi, atau atur ulang kata sandi Anda.</string>
-    <string name="login_attempts_hint">%1$d dari %2$d percobaan terpakai. Jika lupa kata sandi, Anda bisa mengatur ulangnya.</string>
+    <string name="login_locked_message">Terlalu banyak percobaan. Coba lagi dalam %1$d dtk.</string>
+    <string name="login_attempts_hint">%1$d dari %2$d percobaan terpakai.</string>
     <string name="reset_password_title">Atur ulang kata sandi</string>
-    <string name="reset_password_body">Masukkan alamat email Anda dan kami akan mengirimkan tautan untuk membuat kata sandi baru.</string>
+    <string name="reset_password_body">Kami akan mengirim tautan atur ulang ke email Anda.</string>
     <string name="reset_password_send">Kirim tautan</string>
-    <string name="reset_password_sent">Tautan terkirim. Periksa kotak masuk (dan folder spam) Anda.</string>
+    <string name="reset_password_sent">Tautan terkirim. Periksa kotak masuk Anda.</string>
     <string name="cancel">Batal</string>
     <string name="error_generic">Terjadi kesalahan. Silakan coba lagi.</string>
     <string name="error_invalid_credentials">Email atau kata sandi salah.</string>
-    <string name="error_email_not_confirmed">Konfirmasi email Anda terlebih dahulu. Kami sudah mengirim tautan konfirmasi ke kotak masuk Anda.</string>
-    <string name="error_rate_limited">Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.</string>
-    <string name="error_email_in_use">Akun dengan email ini sudah ada. Silakan masuk.</string>
-    <string name="error_weak_password">Kata sandi terlalu lemah. Gunakan minimal 6 karakter.</string>
+    <string name="error_email_not_confirmed">Konfirmasi email Anda dulu. Periksa kotak masuk.</string>
+    <string name="error_rate_limited">Terlalu banyak permintaan. Coba lagi sebentar.</string>
+    <string name="error_email_in_use">Email ini sudah terdaftar. Silakan masuk.</string>
+    <string name="error_weak_password">Gunakan minimal 6 karakter.</string>
     <string name="error_invalid_email">Masukkan alamat email yang valid.</string>
-    <string name="error_network">Tidak dapat terhubung ke server. Periksa koneksi internet Anda.</string>
+    <string name="error_network">Tidak dapat terhubung ke server. Periksa koneksi Anda.</string>
 
     <!-- Lencana status (anting) -->
     <string name="status_ok">SEHAT</string>
@@ -46,11 +46,11 @@
     <string name="status_offline">OFFLINE</string>
 
     <!-- Penjelasan status (detail sapi) -->
-    <string name="status_normal_explain">Semuanya normal. Suhu dan aktivitas mendekati kondisi biasa sapi ini.</string>
-    <string name="status_warning_explain">Perlu dipantau. Pembacaan mulai menjauh dari kondisi biasa sapi ini.</string>
-    <string name="status_alert_explain">Kemungkinan ada masalah kesehatan. Suhu atau gerakan jauh di luar kisaran biasa sapi ini, jadi segera periksa.</string>
-    <string name="status_offline_no_data">Kalung ini belum mengirim data.</string>
-    <string name="status_offline_no_readings">Tidak ada pembacaan terbaru. Kalung mungkin mati, kehabisan baterai, atau di luar jangkauan.</string>
+    <string name="status_normal_explain">Suhu dan aktivitasnya normal.</string>
+    <string name="status_warning_explain">Pembacaan mulai menjauh dari normalnya. Pantau terus.</string>
+    <string name="status_alert_explain">Pembacaan jauh dari normalnya. Segera periksa.</string>
+    <string name="status_offline_no_data">Belum ada data dari kalung ini.</string>
+    <string name="status_offline_no_readings">Tidak ada data terbaru. Kalung mungkin mati, habis baterai, atau di luar jangkauan.</string>
     <string name="last_reading_ago">Pembacaan terakhir: %1$s.</string>
 
     <!-- Waktu relatif -->
@@ -66,9 +66,9 @@
 
     <!-- Keadaan offline -->
     <string name="offline_title">Anda sedang offline</string>
-    <string name="offline_body">DeCow tidak dapat terhubung ke server saat ini. Data sapi dan peringatan Anda akan muncul kembali begitu koneksi pulih.</string>
-    <string name="offline_reconnect_hint">Periksa Wi-Fi atau data seluler Anda. Layar ini akan diperbarui sendiri.</string>
-    <string name="offline_banner">Anda offline. Menampilkan data terakhir yang diterima.</string>
+    <string name="offline_body">Kawanan Anda akan muncul lagi saat kembali online.</string>
+    <string name="offline_reconnect_hint">Periksa Wi-Fi atau data seluler.</string>
+    <string name="offline_banner">Offline · menampilkan data terakhir</string>
 
     <!-- Ringkasan -->
     <string name="overview_title">Kawanan Anda</string>
@@ -78,7 +78,7 @@
     <string name="overview_updated_now">belum ada pembacaan</string>
     <string name="overview_loading">Memuat kawanan Anda…</string>
     <string name="overview_empty_title">Belum ada sapi</string>
-    <string name="overview_empty">Tambahkan sapi pertama Anda dan pasangkan kalungnya untuk mulai memantau kesehatannya.</string>
+    <string name="overview_empty">Pasangkan kalung untuk mulai memantau.</string>
     <string name="overview_add_cow">Tambah sapi</string>
     <string name="overview_updated_relative">diperbarui %1$s</string>
     <string name="overview_no_data_yet">Belum ada data</string>
@@ -91,8 +91,6 @@
     <plurals name="overview_collars_offline">
         <item quantity="other">%1$d kalung sedang offline</item>
     </plurals>
-    <string name="overview_healthy_of">%1$d dari %2$d sehat</string>
-    <string name="overview_healthy_ring">sehat</string>
     <string name="status_label_normal">Sehat</string>
     <string name="status_label_watch">Pantau</string>
     <string name="status_label_alert">Waspada</string>
@@ -109,11 +107,11 @@
     <string name="alerts_filter_done">Selesai</string>
     <string name="alerts_loading">Memuat peringatan…</string>
     <string name="alerts_empty_open_title">Semua aman</string>
-    <string name="alerts_empty_open">Tidak ada sapi yang perlu perhatian saat ini. Peringatan baru akan muncul di sini.</string>
+    <string name="alerts_empty_open">Tidak ada sapi yang perlu perhatian.</string>
     <string name="alerts_empty_done_title">Belum ada yang selesai</string>
-    <string name="alerts_empty_done">Peringatan pindah ke sini setelah pembacaan sapi kembali normal.</string>
+    <string name="alerts_empty_done">Peringatan yang selesai muncul di sini.</string>
     <string name="alerts_empty_all_title">Belum ada peringatan</string>
-    <string name="alerts_empty_all">DeCow akan memberi tahu Anda begitu ada sapi yang perlu perhatian.</string>
+    <string name="alerts_empty_all">Anda akan diberi tahu saat sapi perlu perhatian.</string>
     <string name="alerts_resolved">Selesai</string>
 
     <!-- Nama jenis peringatan (dipakai sebagai judul) -->
@@ -125,12 +123,12 @@
     <string name="alert_type_sensor_issue">Masalah sensor</string>
 
     <!-- Deskripsi jenis peringatan (pengaturan notifikasi) -->
-    <string name="alert_desc_fever">Suhu jauh di atas normal sapi ini.</string>
-    <string name="alert_desc_low_activity">Bergerak jauh lebih sedikit dari biasanya.</string>
-    <string name="alert_desc_possible_estrus">Aktivitas gelisah yang bisa menandakan birahi.</string>
-    <string name="alert_desc_possible_distress">Berulang kali gagal untuk berdiri.</string>
-    <string name="alert_desc_device_offline">Kalung berhenti mengirim data.</string>
-    <string name="alert_desc_sensor_issue">Kalung mengirim pembacaan yang tidak dapat dipercaya.</string>
+    <string name="alert_desc_fever">Suhu tinggi</string>
+    <string name="alert_desc_low_activity">Bergerak lebih sedikit</string>
+    <string name="alert_desc_possible_estrus">Tanda-tanda birahi</string>
+    <string name="alert_desc_possible_distress">Kesulitan berdiri</string>
+    <string name="alert_desc_device_offline">Kalung berhenti mengirim data</string>
+    <string name="alert_desc_sensor_issue">Pembacaan sensor tidak andal</string>
 
     <!-- Perangkat -->
     <string name="devices_title">Kalung</string>
@@ -138,55 +136,53 @@
         <item quantity="other">%1$d kalung terpasang</item>
     </plurals>
     <string name="devices_add_title">Pasangkan kalung baru</string>
-    <string name="devices_add_hint">Beri nama sapi, lalu pindai kode QR pada kalungnya atau ketik ID kalung.</string>
+    <string name="devices_add_hint">Beri nama sapi, lalu pindai atau ketik ID kalung.</string>
     <string name="devices_cow_name">Nama sapi</string>
     <string name="devices_device_id">ID kalung</string>
     <string name="devices_add">Tambah sapi</string>
-    <string name="devices_scan_qr">Pindai kode QR</string>
+    <string name="devices_scan_qr">Pindai QR</string>
     <string name="devices_photo_saved">Foto tersimpan.</string>
     <string name="devices_photo_removed">Foto dihapus.</string>
     <string name="devices_photo_change">Ganti foto</string>
     <string name="devices_photo_remove">Hapus foto</string>
-    <string name="devices_photo_choose_hint">Ingin mengganti atau menghapus foto ini?</string>
+    <string name="devices_photo_choose_hint">Ganti atau hapus foto ini?</string>
     <string name="devices_rename">Ganti nama</string>
     <string name="devices_rename_title">Ganti nama sapi</string>
     <string name="devices_renamed">Nama diperbarui.</string>
-    <string name="devices_photo_hint">Ketuk foto untuk menambah atau menggantinya.</string>
+    <string name="devices_photo_hint">Ketuk foto untuk menggantinya.</string>
     <string name="devices_added">Sapi ditambahkan.</string>
     <string name="devices_error_prefix">Terjadi kesalahan: %1$s</string>
     <string name="devices_conflict">ID kalung ini sudah dipasangkan dengan sapi lain.</string>
     <string name="devices_registered_header">Kalung terpasang</string>
-    <string name="devices_empty">Belum ada kalung yang dipasangkan. Tambahkan sapi pertama Anda di atas.</string>
+    <string name="devices_empty">Belum ada kalung.</string>
     <string name="devices_remove">Hapus</string>
     <string name="devices_remove_title">Hapus %1$s?</string>
-    <string name="devices_remove_body">Semua pembacaan dan peringatannya juga akan dihapus. Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="devices_remove_body">Pembacaan dan peringatannya juga akan dihapus.</string>
     <string name="devices_deleted">Sapi dihapus.</string>
 
     <!-- Jendela birahi (#7) -->
     <string name="estrus_window_title">%1$s mungkin sedang birahi</string>
-    <string name="estrus_window_open">Waktu terbaik untuk IB: tersisa sekitar %1$d jam. Jadwalkan inseminasi sekarang.</string>
-    <string name="estrus_window_upcoming">Waktu terbaik untuk IB dimulai sekitar %1$d jam lagi (12–18 jam setelah birahi dimulai).</string>
-    <string name="estrus_window_closed">Waktu IB 12–18 jam sudah terlewat.</string>
+    <string name="estrus_window_open">Lakukan IB dalam sekitar %1$d jam.</string>
+    <string name="estrus_window_upcoming">Waktu terbaik IB dimulai sekitar %1$d jam lagi.</string>
+    <string name="estrus_window_closed">Waktu IB sudah terlewat.</string>
 
     <!-- Detail sapi -->
     <string name="detail_back">Kembali ke kawanan</string>
     <string name="detail_range_24h">24 jam</string>
     <string name="detail_range_7d">7 hari</string>
     <string name="detail_temp_section">Suhu</string>
-    <string name="detail_temp_subtitle">°C · area berwarna adalah kisaran normal sapi ini</string>
     <string name="detail_activity_section">Aktivitas</string>
-    <string name="detail_activity_subtitle">Indeks 0 sampai 100 · area berwarna adalah kisaran normal sapi ini</string>
     <string name="detail_metric_temp">Suhu</string>
     <string name="detail_metric_activity">Aktivitas</string>
     <string name="detail_metric_battery">Baterai</string>
     <string name="detail_metric_last_seen">Pembacaan terakhir</string>
     <string name="detail_normal_value">Normal: %1$s</string>
-    <string name="detail_learning_normal">Mempelajari kondisi normalnya…</string>
-    <string name="detail_no_readings">Belum ada pembacaan pada periode ini.</string>
+    <string name="detail_learning_normal">Mempelajari…</string>
+    <string name="detail_no_readings">Belum ada pembacaan.</string>
     <string name="detail_alert_history">Riwayat peringatan</string>
     <string name="detail_no_alerts">Belum ada peringatan untuk sapi ini.</string>
     <plurals name="detail_suspicious_caption">
-        <item quantity="other">%1$d pembacaan berlingkar berada di luar kisaran suhu yang mungkin bagi sapi. Ditampilkan demi transparansi, tetapi diabaikan saat menilai kesehatan.</item>
+        <item quantity="other">%1$d pembacaan tidak wajar dilingkari dan diabaikan.</item>
     </plurals>
     <string-array name="axis_h24">
         <item>-24j</item>
@@ -210,20 +206,28 @@
     <!-- Pengaturan / profil / bahasa -->
     <string name="settings_title">Pengaturan</string>
     <string name="settings_push_title">Notifikasi</string>
-    <string name="settings_push_subtitle">Pilih peringatan mana yang mengirim notifikasi push ke ponsel ini.</string>
+    <string name="settings_push_subtitle">Pilih peringatan yang dikirim ke ponsel ini.</string>
     <string name="profile_title">Masuk sebagai</string>
     <string name="profile_signed_in">Sudah masuk</string>
     <string name="profile_logout">Keluar</string>
     <string name="language_title">Bahasa</string>
-    <string name="language_subtitle">Dipakai untuk semua teks di aplikasi.</string>
     <string name="settings_theme_title">Tampilan</string>
-    <string name="settings_theme_subtitle">Terang adalah tampilan khas DeCow. Gelap lebih nyaman di mata saat malam.</string>
     <string name="theme_light">Terang</string>
     <string name="theme_dark">Gelap</string>
     <string name="theme_system">Ikuti sistem</string>
-    <string name="language_saved_pre13">Tersimpan. Buka ulang aplikasi agar bahasa baru diterapkan sepenuhnya di versi Android ini.</string>
+    <string name="language_saved_pre13">Tersimpan. Buka ulang aplikasi untuk menerapkan.</string>
     <string name="language_system">Bawaan sistem</string>
     <string name="language_english">English</string>
     <string name="language_indonesian">Bahasa Indonesia</string>
     <string name="settings_brand_tagline">Kesehatan yang terlihat sebelum terjadi.</string>
+
+    <!-- Legenda grafik / satuan -->
+    <string name="detail_activity_unit">indeks 0–100</string>
+    <string name="detail_legend_reading">Pembacaan</string>
+    <string name="detail_legend_normal">Normalnya</string>
+
+    <!-- Halaman -->
+    <string name="pager_prev">Halaman sebelumnya</string>
+    <string name="pager_next">Halaman berikutnya</string>
+    <string name="pager_position">%1$d / %2$d</string>
 </resources>

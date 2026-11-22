@@ -32,7 +32,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.cattlemonitor.R
 import com.example.cattlemonitor.ServiceLocator
@@ -98,8 +97,6 @@ private fun ProfileSection(onLoggedOut: () -> Unit) {
                 Text(
                     email,
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
             OutlinedButton(
@@ -124,15 +121,11 @@ private fun ProfileSection(onLoggedOut: () -> Unit) {
 private fun LanguageSection() {
     AppCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.language_title), style = MaterialTheme.typography.titleLarge)
-                Text(
-                    stringResource(R.string.language_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
+            Text(
+                stringResource(R.string.language_title),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.weight(1f),
+            )
             Spacer(Modifier.width(12.dp))
             LanguagePickerButton()
         }
