@@ -1,5 +1,6 @@
 package com.example.cattlemonitor.ui.device
 
+import com.example.cattlemonitor.ui.common.PullToRefresh
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -65,6 +66,7 @@ fun DeviceScreen(vm: DeviceViewModel = viewModel()) {
     val context = LocalContext.current
     val isOnline by ServiceLocator.connectivity.isOnline.collectAsState()
     val cows by vm.cows.collectAsState()
+    val refreshing by vm.refreshing.collectAsState()
     fun failureMessage(e: Throwable): String = when (e) {
         is DeviceInUseException -> context.getString(R.string.devices_conflict)
         else -> context.getString(R.string.devices_error_prefix, e.message ?: "")
@@ -206,116 +208,118 @@ fun DeviceScreen(vm: DeviceViewModel = viewModel()) {
         OfflineBanner()
         // The whole screen scrolls as one list, so the form never squeezes
         // the paired-collar list into a sliver on small phones.
-        LazyColumn(
-            contentPadding = PaddingValues(bottom = 24.dp),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            item {
-                ScreenHeader(
-                    title = stringResource(R.string.devices_title),
-                    subtitle = if (cows == null) null
-                    else pluralStringResource(R.plurals.devices_paired_count, list.size, list.size),
-                )
-            }
-            item {
-                AppCard(modifier = Modifier.padding(horizontal = ScreenPadding)) {
-                    Text(stringResource(R.string.devices_add_title), style = MaterialTheme.typography.titleLarge)
-                    Text(
-                        stringResource(R.string.devices_add_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
+        PullToRefresh(refreshing = refreshing, onRefresh = { vm.refresh() }) {
+            LazyColumn(
+                contentPadding = PaddingValues(bottom = 24.dp),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                item {
+                    ScreenHeader(
+                        title = stringResource(R.string.devices_title),
+                        subtitle = if (cows == null) null
+                        else pluralStringResource(R.plurals.devices_paired_count, list.size, list.size),
                     )
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it; message = null },
-                        label = { Text(stringResource(R.string.devices_cow_name)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = deviceId,
-                        onValueChange = { deviceId = it; message = null },
-                        label = { Text(stringResource(R.string.devices_device_id)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(14.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedButton(
-                            onClick = { scanQr() },
-                            modifier = Modifier.height(48.dp),
-                        ) {
-                            Text(stringResource(R.string.devices_scan_qr))
+                }
+                item {
+                    AppCard(modifier = Modifier.padding(horizontal = ScreenPadding)) {
+                        Text(stringResource(R.string.devices_add_title), style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            stringResource(R.string.devices_add_hint),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
+                        )
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it; message = null },
+                            label = { Text(stringResource(R.string.devices_cow_name)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedTextField(
+                            value = deviceId,
+                            onValueChange = { deviceId = it; message = null },
+                            label = { Text(stringResource(R.string.devices_device_id)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(14.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedButton(
+                                onClick = { scanQr() },
+                                modifier = Modifier.height(48.dp),
+                            ) {
+                                Text(stringResource(R.string.devices_scan_qr))
+                            }
+                            Button(
+                                onClick = {
+                                    vm.addCow(name.trim(), deviceId.trim()) { result ->
+                                        message = result.fold(
+                                            onSuccess = {
+                                                name = ""
+                                                deviceId = ""
+                                                ok(context.getString(R.string.devices_added))
+                                            },
+                                            onFailure = { fail(it) },
+                                        )
+                                    }
+                                },
+                                enabled = name.isNotBlank() && deviceId.isNotBlank(),
+                                modifier = Modifier.weight(1f).height(48.dp),
+                            ) {
+                                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(stringResource(R.string.devices_add))
+                            }
                         }
-                        Button(
-                            onClick = {
-                                vm.addCow(name.trim(), deviceId.trim()) { result ->
-                                    message = result.fold(
-                                        onSuccess = {
-                                            name = ""
-                                            deviceId = ""
-                                            ok(context.getString(R.string.devices_added))
-                                        },
-                                        onFailure = { fail(it) },
-                                    )
+                        message?.let { FeedbackLine(it) }
+                    }
+                }
+                item {
+                    SectionHeader(
+                        text = stringResource(R.string.devices_registered_header),
+                        modifier = Modifier.padding(horizontal = ScreenPadding).padding(top = 8.dp),
+                    )
+                    if (list.isNotEmpty()) {
+                        Text(
+                            stringResource(R.string.devices_photo_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = 10.dp),
+                        )
+                    }
+                }
+                if (list.isEmpty()) {
+                    item {
+                        Text(
+                            stringResource(R.string.devices_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = ScreenPadding),
+                        )
+                    }
+                } else {
+                    items(list, key = { it.id }) { cow ->
+                        CollarRow(
+                            cow = cow,
+                            onPhoto = {
+                                if (cow.imageUrl != null) {
+                                    // Already has a photo: offer change or remove.
+                                    photoChoiceTarget = cow
+                                } else {
+                                    photoTarget = cow
+                                    pickPhoto.launch("image/*")
                                 }
                             },
-                            enabled = name.isNotBlank() && deviceId.isNotBlank(),
-                            modifier = Modifier.weight(1f).height(48.dp),
-                        ) {
-                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.devices_add))
-                        }
+                            onRename = {
+                                renameTarget = cow
+                                renameValue = cow.name
+                            },
+                            onRemove = { removeTarget = cow },
+                            modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 5.dp),
+                        )
                     }
-                    message?.let { FeedbackLine(it) }
-                }
-            }
-            item {
-                SectionHeader(
-                    text = stringResource(R.string.devices_registered_header),
-                    modifier = Modifier.padding(horizontal = ScreenPadding).padding(top = 8.dp),
-                )
-                if (list.isNotEmpty()) {
-                    Text(
-                        stringResource(R.string.devices_photo_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = 10.dp),
-                    )
-                }
-            }
-            if (list.isEmpty()) {
-                item {
-                    Text(
-                        stringResource(R.string.devices_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = ScreenPadding),
-                    )
-                }
-            } else {
-                items(list, key = { it.id }) { cow ->
-                    CollarRow(
-                        cow = cow,
-                        onPhoto = {
-                            if (cow.imageUrl != null) {
-                                // Already has a photo: offer change or remove.
-                                photoChoiceTarget = cow
-                            } else {
-                                photoTarget = cow
-                                pickPhoto.launch("image/*")
-                            }
-                        },
-                        onRename = {
-                            renameTarget = cow
-                            renameValue = cow.name
-                        },
-                        onRemove = { removeTarget = cow },
-                        modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 5.dp),
-                    )
                 }
             }
         }

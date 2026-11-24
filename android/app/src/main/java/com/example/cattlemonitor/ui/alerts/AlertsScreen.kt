@@ -1,5 +1,7 @@
 package com.example.cattlemonitor.ui.alerts
 
+import com.example.cattlemonitor.ui.common.PullToRefresh
+import com.example.cattlemonitor.ui.common.RefreshableFill
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -75,6 +77,7 @@ fun AlertsScreen(onOpenCow: (String) -> Unit, vm: AlertsViewModel = viewModel())
     val isOnline by ServiceLocator.connectivity.isOnline.collectAsState()
     val alerts by vm.alerts.collectAsState()
     val cows by vm.cows.collectAsState()
+    val refreshing by vm.refreshing.collectAsState()
     // Hybrid offline (#9): banner over cached data, full gate only when empty.
     if (!isOnline && alerts == null) {
         OfflineScreen()
@@ -118,30 +121,32 @@ fun AlertsScreen(onOpenCow: (String) -> Unit, vm: AlertsViewModel = viewModel())
                 Filter.DONE -> it.resolved
             }
         }
-        when {
-            alerts == null -> LoadingState(stringResource(R.string.alerts_loading))
-            list.isEmpty() -> when (filter) {
-                Filter.OPEN -> EmptyState(
-                    title = stringResource(R.string.alerts_empty_open_title),
-                    text = stringResource(R.string.alerts_empty_open),
-                    icon = Icons.Filled.CheckCircle,
-                )
-                Filter.DONE -> EmptyState(
-                    title = stringResource(R.string.alerts_empty_done_title),
-                    text = stringResource(R.string.alerts_empty_done),
-                    icon = Icons.Filled.Notifications,
-                )
-                Filter.ALL -> EmptyState(
-                    title = stringResource(R.string.alerts_empty_all_title),
-                    text = stringResource(R.string.alerts_empty_all),
-                    icon = Icons.Filled.Notifications,
-                )
-            }
-            else -> LazyColumn(
-                contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                items(list, key = { it.id }) { AlertCard(it, cowsById[it.cowId], onOpenCow) }
+        PullToRefresh(refreshing = refreshing, onRefresh = { vm.refresh() }) {
+            when {
+                alerts == null -> LoadingState(stringResource(R.string.alerts_loading))
+                list.isEmpty() -> when (filter) {
+                    Filter.OPEN -> RefreshableFill { EmptyState(
+                        title = stringResource(R.string.alerts_empty_open_title),
+                        text = stringResource(R.string.alerts_empty_open),
+                        icon = Icons.Filled.CheckCircle,
+                    ) }
+                    Filter.DONE -> RefreshableFill { EmptyState(
+                        title = stringResource(R.string.alerts_empty_done_title),
+                        text = stringResource(R.string.alerts_empty_done),
+                        icon = Icons.Filled.Notifications,
+                    ) }
+                    Filter.ALL -> RefreshableFill { EmptyState(
+                        title = stringResource(R.string.alerts_empty_all_title),
+                        text = stringResource(R.string.alerts_empty_all),
+                        icon = Icons.Filled.Notifications,
+                    ) }
+                }
+                else -> LazyColumn(
+                    contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(list, key = { it.id }) { AlertCard(it, cowsById[it.cowId], onOpenCow) }
+                }
             }
         }
     }

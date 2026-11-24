@@ -62,6 +62,7 @@ import com.example.cattlemonitor.ui.common.LineChart
 import com.example.cattlemonitor.ui.common.OfflineBanner
 import com.example.cattlemonitor.ui.common.OfflineScreen
 import com.example.cattlemonitor.ui.common.Pager
+import com.example.cattlemonitor.ui.common.PullToRefresh
 import com.example.cattlemonitor.ui.common.ScreenPadding
 import com.example.cattlemonitor.ui.common.SectionHeader
 import com.example.cattlemonitor.ui.common.SegmentedToggle
@@ -111,6 +112,8 @@ fun CowDetailScreen(
     val cow by vm.cow.collectAsState()
     val readings by vm.readings.collectAsState()
     val alerts by vm.alerts.collectAsState()
+    val refreshing by vm.refreshing.collectAsState()
+    val refreshCount by vm.refreshCount.collectAsState()
     var range by remember { mutableStateOf(Range.H24) }
 
     // Hybrid offline (#9): detail keeps showing cached charts under a banner;
@@ -130,6 +133,9 @@ fun CowDetailScreen(
         onSelectRange = { range = it },
         onBack = onBack,
         cowId = cowId,
+        refreshing = refreshing,
+        refreshCount = refreshCount,
+        onRefresh = { vm.refresh() },
         onExport = {
             val currentCow = cow
             if (currentCow != null) {
@@ -197,6 +203,9 @@ private fun DetailBody(
     onSelectRange: (Range) -> Unit,
     onBack: () -> Unit,
     cowId: String,
+    refreshing: Boolean = false,
+    refreshCount: Int = 0,
+    onRefresh: () -> Unit = {},
     onExport: () -> Unit = {},
 ) {
     val windowMs = TimeUnit.HOURS.toMillis(selected.hours)
@@ -207,7 +216,7 @@ private fun DetailBody(
     // ~30k rows and the raw fetch caps at 5,000 (silent truncation). The
     // readings_downsample RPC returns ~1,000 10-minute buckets instead.
     var buckets by remember { mutableStateOf<List<com.example.cattlemonitor.data.Bucket>?>(null) }
-    LaunchedEffect(selected) {
+    LaunchedEffect(selected, refreshCount) {
         if (selected == Range.D7) {
             buckets = ServiceLocator.repository.fetchDownsampled(
                 cowId,
@@ -258,155 +267,157 @@ private fun DetailBody(
     var alertPage by rememberSaveable { mutableStateOf(0) }
     Column(modifier = Modifier.fillMaxSize()) {
         OfflineBanner()
-        LazyColumn(
-            contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 8.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            // Top bar: back on the left, export on the right.
-            item {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onBack, contentPadding = PaddingValues(start = 0.dp, end = 12.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.detail_back), style = MaterialTheme.typography.labelLarge)
-                    }
-                    Spacer(Modifier.weight(1f))
-                    OutlinedButton(
-                        onClick = onExport,
-                        enabled = cow != null,
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                    ) {
-                        Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.detail_export), style = MaterialTheme.typography.labelLarge)
+        PullToRefresh(refreshing = refreshing, onRefresh = onRefresh) {
+            LazyColumn(
+                contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 8.dp, bottom = 28.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                // Top bar: back on the left, export on the right.
+                item {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = onBack, contentPadding = PaddingValues(start = 0.dp, end = 12.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.detail_back), style = MaterialTheme.typography.labelLarge)
+                        }
+                        Spacer(Modifier.weight(1f))
+                        OutlinedButton(
+                            onClick = onExport,
+                            enabled = cow != null,
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        ) {
+                            Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.detail_export), style = MaterialTheme.typography.labelLarge)
+                        }
                     }
                 }
-            }
 
-            // Hero: who she is, how she's doing, and why.
-            item {
-                val tint = status?.let { statusColor(it) } ?: MaterialTheme.colorScheme.outline
-                AppCard(borderColor = tint.copy(alpha = 0.5f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CowAvatar(cow = cow, size = 64.dp)
-                        Column(modifier = Modifier.weight(1f).padding(horizontal = 14.dp)) {
-                            Text(
-                                cow?.name ?: cowId,
-                                style = MaterialTheme.typography.headlineSmall,
-                            )
-                            cow?.let {
+                // Hero: who she is, how she's doing, and why.
+                item {
+                    val tint = status?.let { statusColor(it) } ?: MaterialTheme.colorScheme.outline
+                    AppCard(borderColor = tint.copy(alpha = 0.5f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CowAvatar(cow = cow, size = 64.dp)
+                            Column(modifier = Modifier.weight(1f).padding(horizontal = 14.dp)) {
                                 Text(
-                                    it.deviceId,
-                                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                    cow?.name ?: cowId,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                )
+                                cow?.let {
+                                    Text(
+                                        it.deviceId,
+                                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            status?.let { StatusBadge(it) }
+                        }
+                        cow?.let {
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 14.dp)
+                                    .fillMaxWidth()
+                                    .background(tint.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                                    .padding(12.dp),
+                            ) {
+                                Text(
+                                    statusExplanation(it),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item { EstrusWindowCard(alerts, cow) }
+
+                cow?.let { c -> item { MetricTiles(c) } }
+
+                item {
+                    SegmentedToggle(
+                        options = Range.entries.map { rangeLabel(it) },
+                        selectedIndex = selected.ordinal,
+                        onSelect = { onSelectRange(Range.entries[it]) },
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+
+                item {
+                    ChartCard(
+                        title = stringResource(R.string.detail_temp_section),
+                        unit = "°C",
+                        hasData = tempValues.size >= 2,
+                    ) {
+                        LineChart(
+                            values = tempValues,
+                            modifier = Modifier.fillMaxWidth(),
+                            baselineValue = cow?.baselineTemp,
+                            showAxis = true,
+                            valueSuffix = "°",
+                            xAxisLabels = timeAxisLabels(selected),
+                            suspicious = tempSuspicious,
+                            alertMarkers = alertMarkers,
+                        )
+                        if (suspiciousCount > 0) {
+                            Row(modifier = Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Top) {
+                                Icon(
+                                    Icons.Filled.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp).padding(top = 1.dp),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    pluralStringResource(R.plurals.detail_suspicious_caption, suspiciousCount, suspiciousCount),
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
-                        status?.let { StatusBadge(it) }
-                    }
-                    cow?.let {
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 14.dp)
-                                .fillMaxWidth()
-                                .background(tint.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                                .padding(12.dp),
-                        ) {
-                            Text(
-                                statusExplanation(it),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
                     }
                 }
-            }
 
-            item { EstrusWindowCard(alerts, cow) }
-
-            cow?.let { c -> item { MetricTiles(c) } }
-
-            item {
-                SegmentedToggle(
-                    options = Range.entries.map { rangeLabel(it) },
-                    selectedIndex = selected.ordinal,
-                    onSelect = { onSelectRange(Range.entries[it]) },
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-
-            item {
-                ChartCard(
-                    title = stringResource(R.string.detail_temp_section),
-                    unit = "°C",
-                    hasData = tempValues.size >= 2,
-                ) {
-                    LineChart(
-                        values = tempValues,
-                        modifier = Modifier.fillMaxWidth(),
-                        baselineValue = cow?.baselineTemp,
-                        showAxis = true,
-                        valueSuffix = "°",
-                        xAxisLabels = timeAxisLabels(selected),
-                        suspicious = tempSuspicious,
-                        alertMarkers = alertMarkers,
-                    )
-                    if (suspiciousCount > 0) {
-                        Row(modifier = Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Top) {
-                            Icon(
-                                Icons.Filled.Info,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp).padding(top = 1.dp),
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                pluralStringResource(R.plurals.detail_suspicious_caption, suspiciousCount, suspiciousCount),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
-                ChartCard(
-                    title = stringResource(R.string.detail_activity_section),
-                    unit = stringResource(R.string.detail_activity_unit),
-                    lineColor = Accent,
-                    hasData = activityValues.size >= 2,
-                ) {
-                    LineChart(
-                        values = activityValues,
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Accent,
-                        baselineValue = cow?.baselineActivity?.toActivityIndex(),
-                        showAxis = true,
-                        xAxisLabels = timeAxisLabels(selected),
-                    )
-                }
-            }
-
-            item { SectionHeader(stringResource(R.string.detail_alert_history), modifier = Modifier.padding(top = 0.dp)) }
-            val pageCount = (alerts.size + ALERTS_PER_PAGE - 1) / ALERTS_PER_PAGE
-            val page = alertPage.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
-            if (alerts.isEmpty()) {
                 item {
-                    Text(
-                        stringResource(R.string.detail_no_alerts),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    ChartCard(
+                        title = stringResource(R.string.detail_activity_section),
+                        unit = stringResource(R.string.detail_activity_unit),
+                        lineColor = Accent,
+                        hasData = activityValues.size >= 2,
+                    ) {
+                        LineChart(
+                            values = activityValues,
+                            modifier = Modifier.fillMaxWidth(),
+                            color = Accent,
+                            baselineValue = cow?.baselineActivity?.toActivityIndex(),
+                            showAxis = true,
+                            xAxisLabels = timeAxisLabels(selected),
+                        )
+                    }
                 }
-            } else {
-                // Paged instead of one endless scroll: ALERTS_PER_PAGE at a time.
-                items(
-                    alerts.drop(page * ALERTS_PER_PAGE).take(ALERTS_PER_PAGE),
-                    key = { it.id },
-                ) { a -> AlertCard(a, cow = null, onOpenCow = null) }
-                item { Pager(page = page, pageCount = pageCount, onPageChange = { alertPage = it }) }
+
+                item { SectionHeader(stringResource(R.string.detail_alert_history), modifier = Modifier.padding(top = 0.dp)) }
+                val pageCount = (alerts.size + ALERTS_PER_PAGE - 1) / ALERTS_PER_PAGE
+                val page = alertPage.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
+                if (alerts.isEmpty()) {
+                    item {
+                        Text(
+                            stringResource(R.string.detail_no_alerts),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    // Paged instead of one endless scroll: ALERTS_PER_PAGE at a time.
+                    items(
+                        alerts.drop(page * ALERTS_PER_PAGE).take(ALERTS_PER_PAGE),
+                        key = { it.id },
+                    ) { a -> AlertCard(a, cow = null, onOpenCow = null) }
+                    item { Pager(page = page, pageCount = pageCount, onPageChange = { alertPage = it }) }
+                }
             }
         }
     }

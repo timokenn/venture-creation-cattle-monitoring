@@ -21,6 +21,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +40,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.Date
 import java.util.UUID
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class DeviceInUseException : Exception("That device ID is already registered to another cow")
 class CowNotFoundException : Exception("Cow no longer exists")
@@ -74,6 +76,20 @@ class CattleRepository(
     /** How often a live query refreshes even with no realtime event (safety net). */
     @VisibleForTesting
     internal var pollFallbackMs: Long = 60_000
+
+    /**
+     * Pull-to-refresh requests. Every running live query refetches when one
+     * arrives and completes the request after its fetch attempt (success or
+     * failure), so the spinner stops as soon as fresh data is on screen.
+     */
+    private val refreshRequests = MutableSharedFlow<CompletableDeferred<Unit>>(extraBufferCapacity = 16)
+
+    /** Refetch every live query now. Returns when done, or after [timeoutMs]. */
+    suspend fun refresh(timeoutMs: Long = 8_000) {
+        val done = CompletableDeferred<Unit>()
+        refreshRequests.emit(done)
+        withTimeoutOrNull(timeoutMs) { done.await() }
+    }
 
     // ------------------------------------------------------------ live reads
 
@@ -153,6 +169,14 @@ class CattleRepository(
     private fun <T> liveQuery(table: String, fetch: suspend () -> T): Flow<T> = flow {
         coroutineScope {
             val updates = MutableSharedFlow<Unit>(extraBufferCapacity = 16)
+            val pendingRefreshes = ConcurrentLinkedQueue<CompletableDeferred<Unit>>()
+            fun finishRefreshes() {
+                while (true) pendingRefreshes.poll()?.complete(Unit) ?: break
+            }
+            refreshRequests.onEach {
+                pendingRefreshes.add(it)
+                updates.tryEmit(Unit)
+            }.launchIn(this)
             var subscribed: RealtimeChannel? = null
             val realtimeJob = launch {
                 runCatching {
@@ -171,9 +195,12 @@ class CattleRepository(
                         try {
                             ensureFreshUserToken()
                             emit(fetch())
+                            finishRefreshes()
                             break
                         } catch (t: Throwable) {
                             if (t is CancellationException) throw t
+                            // A failed attempt (e.g. offline) still ends the pull spinner.
+                            finishRefreshes()
                             delay(backoffMs)
                             backoffMs = (backoffMs * 2).coerceAtMost(30_000)
                         }

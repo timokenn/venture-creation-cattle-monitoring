@@ -1,5 +1,6 @@
 package com.example.cattlemonitor.ui.detail
 
+import com.example.cattlemonitor.ui.common.RefreshableViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cattlemonitor.ServiceLocator
@@ -11,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import java.util.Date
 
-class DetailViewModel(cowId: String) : ViewModel() {
+class DetailViewModel(cowId: String) : RefreshableViewModel() {
     private val repo = ServiceLocator.repository
 
     val cow: StateFlow<Cow?> = repo.observeCow(cowId)

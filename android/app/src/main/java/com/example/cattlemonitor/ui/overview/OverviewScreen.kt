@@ -1,5 +1,7 @@
 package com.example.cattlemonitor.ui.overview
 
+import com.example.cattlemonitor.ui.common.PullToRefresh
+import com.example.cattlemonitor.ui.common.RefreshableFill
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -83,6 +85,7 @@ fun OverviewScreen(
 ) {
     val isOnline by ServiceLocator.connectivity.isOnline.collectAsState()
     val cows by vm.cows.collectAsState()
+    val refreshing by vm.refreshing.collectAsState()
     // Hybrid offline (#9): full gate only with nothing cached; otherwise a
     // slim banner over the last-known data.
     if (!isOnline && cows == null) {
@@ -110,46 +113,48 @@ fun OverviewScreen(
             else pluralStringResource(R.plurals.overview_cow_count, list.size, list.size) + " · " + freshness,
         )
 
-        when {
-            cows == null -> LoadingState(stringResource(R.string.overview_loading))
-            list.isEmpty() -> EmptyState(
-                title = stringResource(R.string.overview_empty_title),
-                text = stringResource(R.string.overview_empty),
-                icon = Icons.Filled.Add,
-                actionLabel = stringResource(R.string.overview_add_cow),
-                onAction = onAddCow,
-            )
-            else -> {
-                val sorted = remember(list, now) {
-                    list.sortedWith(compareBy<Cow>({ it.effectiveStatus(now).urgency() }, { it.name.lowercase() }))
-                }
-                // One scrolling grid for everything, so the summary scrolls away
-                // with the cards instead of eating half the screen.
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(if (stack) 1 else 2),
-                    contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    item(span = { GridItemSpan(maxLineSpan) }) { HerdHealthCard(list, now) }
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        SectionHeader(
-                            text = stringResource(R.string.overview_section_cows),
-                            modifier = Modifier.padding(top = 0.dp),
-                        ) {
-                            SegmentedToggle(
-                                options = listOf(stringResource(R.string.layout_grid), stringResource(R.string.layout_stack)),
-                                selectedIndex = if (stack) 1 else 0,
-                                onSelect = { stack = it == 1 },
-                            )
-                        }
+        PullToRefresh(refreshing = refreshing, onRefresh = { vm.refresh() }) {
+            when {
+                cows == null -> LoadingState(stringResource(R.string.overview_loading))
+                list.isEmpty() -> RefreshableFill { EmptyState(
+                    title = stringResource(R.string.overview_empty_title),
+                    text = stringResource(R.string.overview_empty),
+                    icon = Icons.Filled.Add,
+                    actionLabel = stringResource(R.string.overview_add_cow),
+                    onAction = onAddCow,
+                ) }
+                else -> {
+                    val sorted = remember(list, now) {
+                        list.sortedWith(compareBy<Cow>({ it.effectiveStatus(now).urgency() }, { it.name.lowercase() }))
                     }
-                    items(sorted, key = { it.id }) { cow ->
-                        if (stack) {
-                            CowListCard(cow, now) { onOpenCow(cow.id) }
-                        } else {
-                            CowGridCard(cow, now) { onOpenCow(cow.id) }
+                    // One scrolling grid for everything, so the summary scrolls away
+                    // with the cards instead of eating half the screen.
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(if (stack) 1 else 2),
+                        contentPadding = PaddingValues(start = ScreenPadding, end = ScreenPadding, bottom = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        item(span = { GridItemSpan(maxLineSpan) }) { HerdHealthCard(list, now) }
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SectionHeader(
+                                text = stringResource(R.string.overview_section_cows),
+                                modifier = Modifier.padding(top = 0.dp),
+                            ) {
+                                SegmentedToggle(
+                                    options = listOf(stringResource(R.string.layout_grid), stringResource(R.string.layout_stack)),
+                                    selectedIndex = if (stack) 1 else 0,
+                                    onSelect = { stack = it == 1 },
+                                )
+                            }
+                        }
+                        items(sorted, key = { it.id }) { cow ->
+                            if (stack) {
+                                CowListCard(cow, now) { onOpenCow(cow.id) }
+                            } else {
+                                CowGridCard(cow, now) { onOpenCow(cow.id) }
+                            }
                         }
                     }
                 }
