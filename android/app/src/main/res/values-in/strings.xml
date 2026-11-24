@@ -41,7 +41,7 @@
 
     <!-- Lencana status (anting) -->
     <string name="status_ok">SEHAT</string>
-    <string name="status_watch">PANTAU</string>
+    <string name="status_watch">HATI-HATI</string>
     <string name="status_alert">WASPADA</string>
     <string name="status_offline">OFFLINE</string>
 
@@ -92,7 +92,7 @@
         <item quantity="other">%1$d kalung sedang offline</item>
     </plurals>
     <string name="status_label_normal">Sehat</string>
-    <string name="status_label_watch">Pantau</string>
+    <string name="status_label_watch">Hati-hati</string>
     <string name="status_label_alert">Waspada</string>
     <string name="status_label_offline">Offline</string>
 

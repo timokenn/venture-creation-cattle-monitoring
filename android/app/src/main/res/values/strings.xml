@@ -42,7 +42,7 @@
 
     <!-- Ear-tag status badges -->
     <string name="status_ok">HEALTHY</string>
-    <string name="status_watch">WATCH</string>
+    <string name="status_watch">CAUTION</string>
     <string name="status_alert">ALERT</string>
     <string name="status_offline">OFFLINE</string>
 
@@ -96,7 +96,7 @@
         <item quantity="other">%1$d collars are offline</item>
     </plurals>
     <string name="status_label_normal">Healthy</string>
-    <string name="status_label_watch">Watch</string>
+    <string name="status_label_watch">Caution</string>
     <string name="status_label_alert">Alert</string>
     <string name="status_label_offline">Offline</string>
 
