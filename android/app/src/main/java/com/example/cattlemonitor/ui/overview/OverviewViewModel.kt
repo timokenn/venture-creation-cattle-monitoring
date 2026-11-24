@@ -1,5 +1,6 @@
 package com.example.cattlemonitor.ui.overview
 
+import com.example.cattlemonitor.ui.common.RefreshableViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cattlemonitor.ServiceLocator
@@ -8,7 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
-class OverviewViewModel : ViewModel() {
+class OverviewViewModel : RefreshableViewModel() {
     private val repo = ServiceLocator.repository
 
     val cows: StateFlow<List<Cow>?> = repo.observeCows()

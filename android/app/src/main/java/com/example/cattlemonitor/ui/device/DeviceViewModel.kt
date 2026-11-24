@@ -1,5 +1,6 @@
 package com.example.cattlemonitor.ui.device
 
+import com.example.cattlemonitor.ui.common.RefreshableViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cattlemonitor.ServiceLocator
@@ -9,7 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class DeviceViewModel : ViewModel() {
+class DeviceViewModel : RefreshableViewModel() {
     private val repo = ServiceLocator.repository
     private val uploader = ServiceLocator.photoUploader
 
